@@ -2,13 +2,14 @@ let audioContext;
 let analyser;
 let globalGain = 1; // Initial gain (full volume)
 let enabled = false; // Default disabled
-let limitDB = -10; // Default limit in dBFS
+let limitDB = -20; // Default limit in dBFS
 let tabId;
 let setupAttempts = 0;
 let maxSetupAttempts = 10;
 let setupInterval;
+let audioInitialized = false;
 
-// special cases
+// Special cases
 let isNetflix = window.location.hostname.includes('netflix.com');
 
 function setupAudio() {
@@ -17,29 +18,27 @@ function setupAudio() {
       audioContext = new AudioContext();
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 2048;
+      audioInitialized = true;
     }
 
     const elements = document.querySelectorAll('audio, video');
+
     let foundElements = false;
-    
+
     elements.forEach(element => {
       if (addElement(element)) {
         foundElements = true;
       }
     });
 
-    // Search in Shadow DOM for sites like Netflix
     if (isNetflix || !foundElements) {
       searchInShadowDOM(document.body);
     }
 
-    // Observe changes in the DOM
     setupMutationObserver();
-    
-    // If we are in Netflix and no elements are found, schedule retries
+
     if (isNetflix && !foundElements) {
       if (setupAttempts < maxSetupAttempts) {
-        console.log(`Attempt ${setupAttempts + 1} to configure audio in Netflix. Retrying in 1 second...`);
         setupAttempts++;
         if (!setupInterval) {
           setupInterval = setInterval(() => {
@@ -47,12 +46,10 @@ function setupAudio() {
             if (videoElements.length > 0) {
               clearInterval(setupInterval);
               setupInterval = null;
-              console.log(`Video elements found in Netflix after ${setupAttempts} attempts`);
               videoElements.forEach(addElement);
             } else if (setupAttempts >= maxSetupAttempts) {
               clearInterval(setupInterval);
               setupInterval = null;
-              console.log('Maximum number of attempts reached to find video in Netflix');
             } else {
               setupAttempts++;
             }
@@ -60,23 +57,33 @@ function setupAudio() {
         }
       }
     }
+
+    // If no elements were found, try to initialize AudioContext anyway
+    if (!foundElements && !isNetflix) {
+      // Create a gain node and connect it to the destination to keep AudioContext active
+      const dummyGain = audioContext.createGain();
+      dummyGain.connect(audioContext.destination);
+    }
+
+    return foundElements;
   } catch (e) {
-    console.log(`Error setting up audio: ${e.message}`);
+    console.error(`Error setting up audio: ${e.message}`);
+    return false;
   }
 }
 
 function searchInShadowDOM(root) {
   if (!root) return;
-  
+
   // Search in the shadow root if it exists
   if (root.shadowRoot) {
     const shadowElements = root.shadowRoot.querySelectorAll('audio, video');
     shadowElements.forEach(addElement);
-    
+
     // Search recursively in all shadow root elements
     Array.from(root.shadowRoot.querySelectorAll('*')).forEach(searchInShadowDOM);
   }
-  
+
   // Search in all child elements
   if (root.children) {
     Array.from(root.children).forEach(searchInShadowDOM);
@@ -99,7 +106,7 @@ function setupMutationObserver() {
                 // Search for audio/video elements within the added node
                 const mediaElements = node.querySelectorAll('audio, video');
                 mediaElements.forEach(addElement);
-                
+
                 // Search in Shadow DOM
                 searchInShadowDOM(node);
               }
@@ -108,7 +115,7 @@ function setupMutationObserver() {
         }
       });
     });
-    
+
     // Observe the entire document
     if (document.body) {
       observer.observe(document.body, { childList: true, subtree: true });
@@ -121,24 +128,38 @@ function setupMutationObserver() {
       }, 500);
     }
   } catch (e) {
-    console.log(`Error configuring MutationObserver: ${e.message}`);
+    console.error(`Error configuring MutationObserver: ${e.message}`);
   }
 }
 
 function addElement(element) {
   if (!element || element._gainNode) return false;
-  
+
   try {
-    // Asegurarse de que el elemento tenga una fuente de medios válida
+    // Make sure the element has a valid media source
     if (element.src || element.srcObject || (element.currentSrc && element.currentSrc !== "")) {
-      const source = audioContext.createMediaElementSource(element);
-      const gainNode = audioContext.createGain();
-      source.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      source.connect(analyser);
-      element._gainNode = gainNode;
-      console.log(`Media element connected: ${element.tagName}`);
-      return true;
+      try {
+        const source = audioContext.createMediaElementSource(element);
+        const gainNode = audioContext.createGain();
+        source.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        source.connect(analyser);
+        element._gainNode = gainNode;
+        return true;
+      } catch (sourceError) {
+        // Handle the specific "already connected" error
+        if (sourceError.message && sourceError.message.includes('already connected')) {
+          console.log(`Media element already connected, setting up gain node directly`);
+          // Create a gain node without trying to create a new media element source
+          const gainNode = audioContext.createGain();
+          gainNode.connect(audioContext.destination);
+          element._gainNode = gainNode;
+          return true;
+        } else {
+          // Re-throw other errors
+          throw sourceError;
+        }
+      }
     } else {
       // For elements without a source yet, wait for it to load
       element.addEventListener('loadedmetadata', () => {
@@ -148,14 +169,55 @@ function addElement(element) {
       }, { once: true });
     }
   } catch (e) {
-    console.log(`Error connecting element: ${e.message}`);
+    console.error(`Error connecting element: ${e.message}`);
   }
   return false;
 }
 
 function getRMS() {
   if (!analyser) return 0;
-  
+
+  // Check if any audio/video elements are actually playing
+  const mediaElements = document.querySelectorAll('audio, video');
+  let isAnyPlaying = false;
+
+  // Also check shadow DOM elements
+  const checkShadowElements = (root) => {
+    if (!root) return;
+
+    if (root.shadowRoot) {
+      const shadowMedia = root.shadowRoot.querySelectorAll('audio, video');
+      shadowMedia.forEach(element => {
+        if (!element.paused && !element.ended && element.currentTime > 0) {
+          isAnyPlaying = true;
+        }
+      });
+
+      Array.from(root.shadowRoot.querySelectorAll('*')).forEach(checkShadowElements);
+    }
+
+    if (root.children) {
+      Array.from(root.children).forEach(checkShadowElements);
+    }
+  };
+
+  // Check regular DOM elements
+  mediaElements.forEach(element => {
+    if (!element.paused && !element.ended && element.currentTime > 0) {
+      isAnyPlaying = true;
+    }
+  });
+
+  // Check shadow DOM if needed
+  if (!isAnyPlaying && isNetflix) {
+    checkShadowElements(document.body);
+  }
+
+  // If nothing is playing, return 0 (which will convert to -Infinity dB)
+  if (!isAnyPlaying) {
+    return 0;
+  }
+
   const bufferLength = analyser.frequencyBinCount;
   const dataArray = new Uint8Array(bufferLength);
   analyser.getByteTimeDomainData(dataArray);
@@ -169,13 +231,25 @@ function getRMS() {
 
 function update() {
   try {
+    // Check if extension context is still valid
+    if (chrome.runtime.id === undefined) {
+      console.error("Extension context invalidated. Stopping audio processing.");
+      return; // Stop execution if context is invalid
+    }
+
     const rms = getRMS();
     const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity; // Convert to dBFS
-    chrome.runtime.sendMessage({ type: 'updateDB', db }, response => {
+
+    chrome.runtime.sendMessage({
+      type: 'updateDB',
+      db: db
+    }, response => {
+      // Handle possible communication errors
       if (chrome.runtime.lastError) {
-        // Ignore common communication errors
-        if (!chrome.runtime.lastError.message.includes('receiving end does not exist')) {
-          console.log(`Error sending dB: ${chrome.runtime.lastError.message}`);
+        // Check if error is due to invalidated context
+        if (chrome.runtime.lastError.message.includes("Extension context invalidated")) {
+          console.error("Extension context invalidated. Communication stopped.");
+          return; // Don't continue if context is invalidated
         }
       }
     });
@@ -194,21 +268,52 @@ function update() {
           element._gainNode.gain.value = globalGain;
         }
       });
-      
+
       // Also apply to elements in Shadow DOM for Netflix
       if (isNetflix) {
         applyGainToShadowDOM(document.body);
       }
+    } else {
+      // Reset gain to 1 (full volume) when limiter is disabled
+      if (globalGain !== 1) {
+        globalGain = 1;
+
+        // Reset all audio/video elements to full volume
+        const elements = document.querySelectorAll('audio, video');
+        elements.forEach(element => {
+          if (element._gainNode) {
+            element._gainNode.gain.value = 1;
+          }
+        });
+
+        // Also reset elements in Shadow DOM for Netflix
+        if (isNetflix) {
+          applyGainToShadowDOM(document.body);
+        }
+      }
     }
   } catch (e) {
-    console.log(`Error en update: ${e.message}`);
+    console.error(`Error in update: ${e.message}`);
+
+    // If error is due to invalidated context, stop processing
+    if (e.message.includes("Extension context invalidated")) {
+      console.warn("Extension context invalidated. Stopping audio processing loop.");
+      return; // Don't schedule more updates
+    }
+  }
+
+  try {
+    if (chrome.runtime.id !== undefined) {
+      requestAnimationFrame(update);
+    }
+  } catch (e) {
+    console.warn("Could not schedule next update: " + e.message);
   }
 }
 
 function applyGainToShadowDOM(root) {
   if (!root) return;
-  
-  // Apply to elements in the shadow root
+
   if (root.shadowRoot) {
     const shadowElements = root.shadowRoot.querySelectorAll('audio, video');
     shadowElements.forEach(element => {
@@ -216,12 +321,10 @@ function applyGainToShadowDOM(root) {
         element._gainNode.gain.value = globalGain;
       }
     });
-    
-    // Search recursively in all shadow root elements
+
     Array.from(root.shadowRoot.querySelectorAll('*')).forEach(applyGainToShadowDOM);
   }
-  
-  // Search in all child elements
+
   if (root.children) {
     Array.from(root.children).forEach(applyGainToShadowDOM);
   }
@@ -231,39 +334,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'setConfig') {
     enabled = message.enabled;
     limitDB = message.limitDB;
+    sendResponse({ success: true });
   }
+
+  return true; // Allow async response
 });
 
 // Initialize on load
 function initialize() {
+  // Get configuration from background script
   chrome.runtime.sendMessage({ type: 'getConfig' }, response => {
     if (chrome.runtime.lastError) {
-      console.log(`Error getting config: ${chrome.runtime.lastError.message}`);
-      // Retry after a short delay
-      setTimeout(initialize, 500);
+      console.error(`Error getting config: ${chrome.runtime.lastError.message}`);
+      setupAudio();
+      requestAnimationFrame(update);
       return;
     }
-    tabId = response.tabId;
-    enabled = response.enabled;
-    limitDB = response.limitDB;
-    
-    // Configure audio
-    setupAudio();
-    
-    // Start periodic updates
-    setInterval(update, 100); // Update every 100ms
-    
-    // For Netflix, try configuring the audio again after the page is fully loaded
-    if (isNetflix) {
-      window.addEventListener('load', () => {
-        setTimeout(setupAudio, 2000); // Wait 2 seconds after complete load
-      });
-      
-      // Also try when the user interacts with the page
-      document.addEventListener('click', () => {
-        setTimeout(setupAudio, 500);
-      }, { once: false });
+
+    if (response) {
+      tabId = response.tabId;
+      enabled = response.enabled;
+      limitDB = response.limitDB;
+    } else {
+      console.warn('No response received from background script, using defaults');
     }
+
+    // Set up audio processing
+    const setupSuccess = setupAudio();
+
+    // Start the update loop
+    requestAnimationFrame(update);
+
+    // For complex pages like YouTube, try to set up audio again after a delay
+    setTimeout(() => {
+      if (!audioInitialized || document.querySelectorAll('audio, video').length === 0) {
+        setupAudio();
+      }
+    }, 3000);
   });
 }
 
@@ -273,3 +380,9 @@ if (document.readyState === 'loading') {
 } else {
   initialize();
 }
+
+window.addEventListener('load', () => {
+  if (!audioInitialized) {
+    setupAudio();
+  }
+});

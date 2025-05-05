@@ -1,0 +1,38 @@
+{
+  "extensionName": {
+    "message": "Decibel Limiter",
+    "description": "The name of the extension"
+  },
+  "extensionDescription": {
+    "message": "Limit the maximum decibel level in a Chrome tab",
+    "description": "The description of the extension"
+  },
+  "currentLevel": {
+    "message": "Current level:",
+    "description": "Label for current audio level"
+  },
+  "averageLevel": {
+    "message": "Average:",
+    "description": "Label for average audio level"
+  },
+  "peakLevel": {
+    "message": "Peak:",
+    "description": "Label for peak audio level"
+  },
+  "limit": {
+    "message": "Limit (dBFS):",
+    "description": "Label for limit slider"
+  },
+  "enable": {
+    "message": "Enable",
+    "description": "Enable button text"
+  },
+  "disable": {
+    "message": "Disable",
+    "description": "Disable button text"
+  },
+  "footer": {
+    "message": "Control the volume of your navigation tabs",
+    "description": "Footer text"
+  }
+}

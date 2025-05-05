@@ -1,0 +1,38 @@
+{
+  "extensionName": {
+    "message": "Decibel Limiter",
+    "description": "El nombre de la extensión"
+  },
+  "extensionDescription": {
+    "message": "Limita el nivel máximo de decibelios en una pestaña de Chrome",
+    "description": "La descripción de la extensión"
+  },
+  "currentLevel": {
+    "message": "Nivel actual:",
+    "description": "Etiqueta para el nivel de audio actual"
+  },
+  "averageLevel": {
+    "message": "Promedio:",
+    "description": "Etiqueta para el nivel de audio promedio"
+  },
+  "peakLevel": {
+    "message": "Pico:",
+    "description": "Etiqueta para el nivel de audio máximo"
+  },
+  "limit": {
+    "message": "Límite (dBFS):",
+    "description": "Etiqueta para el control deslizante de límite"
+  },
+  "enable": {
+    "message": "Activar",
+    "description": "Texto del botón de activación"
+  },
+  "disable": {
+    "message": "Desactivar",
+    "description": "Texto del botón de desactivación"
+  },
+  "footer": {
+    "message": "Controla el volumen de tus pestañas de navegación",
+    "description": "Texto del pie de página"
+  }
+}
