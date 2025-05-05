@@ -12,13 +12,14 @@
   --border-radius: 8px;
   --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s ease;
+  --container-bg: #fafafa;
 }
 
-/* Modo oscuro */
+/* Dark mode */
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary-color: #5d7bf9;
-    --primary-hover: #4a6cf7;
+    --primary-color: #9c5fff;
+    --primary-hover: #8a4ae0;
     --secondary-color: #adb5bd;
     --success-color: #2dd45c;
     --danger-color: #e74c3c;
@@ -28,6 +29,7 @@
     --text-secondary: #adb5bd;
     --border-color: #333;
     --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --container-bg: #1a1a1a;
   }
 }
 
@@ -48,8 +50,7 @@ body {
 
 .container {
   background-color: var(--card-bg);
-  border-radius: var(--border-radius);
-  padding: 20px;
+  padding: 10px;
   box-shadow: var(--box-shadow);
   transition: var(--transition);
 }
@@ -57,16 +58,42 @@ body {
 .header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-bottom: 20px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 15px;
   transition: var(--transition);
 }
 
+.header-icons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .header-icon {
-  color: var(--primary-color);
-  margin-right: 10px;
-  font-size: 24px;
+  margin-right: 4px;
+  width: 24px;
+  height: 24px;
+  transition: var(--transition);
+}
+
+.github-icon {
+  fill: var(--text-primary);
+  width: 22px;
+  height: 22px;
+  transition: var(--transition);
+}
+
+.github-icon:hover {
+  fill: var(--primary-color);
+  transform: scale(1.1);
+}
+
+.header-pack {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: var(--transition);
 }
 
@@ -76,10 +103,15 @@ h1 {
   color: var(--text-primary);
   margin: 0;
   transition: var(--transition);
+  line-height: 24px;
 }
 
 .meter-container {
   margin-bottom: 20px;
+  background-color: var(--container-bg);
+  padding: 15px;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
 }
 
 .meter-label {
@@ -95,7 +127,7 @@ h1 {
 .meter-value {
   font-weight: 500;
   color: var(--primary-color);
-  font-size: 16px;
+  font-size: 14px;
   transition: var(--transition);
 }
 
@@ -118,8 +150,30 @@ h1 {
   left: 0;
 }
 
+.meter-details {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.meter-detail {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meter-detail .meter-value {
+  font-weight: 500;
+}
+
 .slider-container {
   margin-bottom: 20px;
+  background-color: var(--container-bg);
+  padding: 15px;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
 }
 
 .slider-header {
@@ -138,16 +192,13 @@ h1 {
 .slider-value {
   font-weight: 500;
   color: var(--primary-color);
-  background-color: rgba(74, 108, 247, 0.1);
-  padding: 2px 8px;
-  border-radius: 4px;
   font-size: 14px;
   transition: var(--transition);
 }
 
 @media (prefers-color-scheme: dark) {
   .slider-value {
-    background-color: rgba(93, 123, 249, 0.2);
+    color: var(--primary-color);
   }
 }
 
@@ -175,14 +226,9 @@ input[type="range"]::-webkit-slider-thumb {
   transition: var(--transition);
 }
 
-input[type="range"]::-webkit-slider-thumb:hover {
-  background: var(--primary-hover);
-  transform: scale(1.1);
-}
-
 .toggle-button {
   width: 100%;
-  padding: 12px;
+  padding: 8px;
   border: none;
   border-radius: var(--border-radius);
   background-color: var(--primary-color);
@@ -214,17 +260,30 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .footer {
-  margin-top: 15px;
+  margin-top: 10px;
   text-align: center;
   font-size: 12px;
   color: var(--text-secondary);
   transition: var(--transition);
 }
 
-/* Clase para detectar el modo oscuro mediante JavaScript */
+.scale-markers {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  padding: 0 2px;
+}
+
+.scale-marker {
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
 .dark-mode-status {
   display: none;
 }
+
 @media (prefers-color-scheme: dark) {
   .dark-mode-status {
     display: block;

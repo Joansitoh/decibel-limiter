@@ -6,7 +6,7 @@
 
 Decibel Limiter is a Google Chrome extension that automatically controls and limits audio volume in browser tabs. This tool is ideal for protecting your hearing, preventing startling loud unexpected sounds, and maintaining a consistent audio level while browsing different websites.
 
-![Extension Preview](preview.png)
+![Extension Preview](img/preview.png)
 
 ## ✨ Key Features
 
