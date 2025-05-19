@@ -1,193 +1,101 @@
-// Store current decibel levels per tab
-const currentDBLevels = {};
-const dbHistory = {}; // Store level history for average calculation
-const peakDBLevels = {}; // Store maximum levels
+const currentDB = new Map();       // tabId -> number
+const historyDB = new Map();       // tabId -> Array<number>
+const peakDB = new Map();          // tabId -> number
 
-// Function to calculate average decibel level
-function calculateAverageDB(tabId) {
-  try {
-    if (!dbHistory[tabId] || dbHistory[tabId].length === 0) {
-      return -Infinity;
-    }
+// Utility to safely call async chrome APIs
+const chromeAsync = {
+  getStorage: (keys) => new Promise(resolve => chrome.storage.local.get(keys, resolve)),
+  setStorage: (items) => new Promise(resolve => chrome.storage.local.set(items, resolve)),
+  queryTabs: (query) => new Promise(resolve => chrome.tabs.query(query, resolve)),
+  sendMessageTab: (tabId, msg) => new Promise(resolve => chrome.tabs.sendMessage(tabId, msg, resolve)),
+};
 
-    // Filter -Infinity and non-numeric values
-    const validValues = dbHistory[tabId].filter(db =>
-      db !== -Infinity &&
-      db !== null &&
-      db !== undefined &&
-      !isNaN(db)
-    );
+// Calculate weighted moving average, giving more weight to recent values
+function calcAverage(list = []) {
+  const validValues = list.filter(v => isFinite(v));
+  if (!validValues.length) return -Infinity;
 
-    if (validValues.length === 0) {
-      return -Infinity;
-    }
+  // Use an exponentially weighted moving average (EMA)
+  // With a smoothing factor that gives more weight to recent values
+  const alpha = 0.3; // Smoothing factor (0 < alpha < 1)
+  let ema = validValues[0];
 
-    // Calculate average
-    const sum = validValues.reduce((acc, val) => acc + val, 0);
-    const average = sum / validValues.length;
-
-    // Verify result is a valid number
-    if (isNaN(average) || average === null || average === undefined) {
-      return -Infinity;
-    }
-
-    return average;
-  } catch (e) {
-    return -Infinity;
+  for (let i = 1; i < validValues.length; i++) {
+    ema = alpha * validValues[i] + (1 - alpha) * ema;
   }
+
+  return isFinite(ema) ? ema : -Infinity;
 }
 
-// Check if extension context is valid
-function isExtensionContextValid() {
-  try {
-    return chrome.runtime.id !== undefined;
-  } catch (e) {
-    return false;
-  }
-}
-
-// Listen for messages from content script
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  try {
-    // Check if context is valid
-    if (!isExtensionContextValid()) {
-      return false;
-    }
-
-    // If message comes from a content script, it will have a tabId
-    const tabId = sender?.tab?.id;
-
-    if (message.type === 'getConfig') {
-      // Get the stored configuration for the tab
-      try {
-        chrome.storage.local.get(tabId.toString(), data => {
-          try {
-            const config = data[tabId] || { enabled: false, limitDB: -20 };
-            sendResponse({ tabId, ...config });
-          } catch (e) {
-            sendResponse({ error: e.message });
-          }
-        });
-        return true; // Asynchronous response
-      } catch (e) {
-        sendResponse({ error: e.message });
-        return true;
-      }
-    } else if (message.type === 'updateDB') {
-      // Update the current decibel level
-      if (tabId) {
-        const db = message.db;
-        currentDBLevels[tabId] = db;
-
-        // Update history and peak
-        if (!dbHistory[tabId]) {
-          dbHistory[tabId] = [];
-        }
-
-        // Keep a limited history (last 100 values)
-        if (dbHistory[tabId].length >= 100) {
-          dbHistory[tabId].shift(); // Remove oldest value
-        }
-
-        // Only add valid values to history
-        if (db !== -Infinity) {
-          dbHistory[tabId].push(db);
-        }
-
-        // Update maximum level
-        if (!peakDBLevels[tabId] || peakDBLevels[tabId] === -Infinity || (db !== -Infinity && db > peakDBLevels[tabId])) {
-          peakDBLevels[tabId] = db;
-        }
-
-        // Send to popup if open
-        try {
-          chrome.runtime.sendMessage({
-            type: 'updatePopup',
-            tabId,
-            db,
-            averageDB: calculateAverageDB(tabId),
-            peakDB: peakDBLevels[tabId] || -Infinity
-          }, response => {
-          });
-        } catch (e) {
-        }
-
-        // Confirm receipt to content script
-        sendResponse({ success: true });
-      }
-      return true; // Asynchronous response
-    } else if (message.type === 'getCurrentDB') {
-      // Respond with the current decibel level and statistics
-      const db = currentDBLevels[tabId] || -Infinity;
-      const averageDB = calculateAverageDB(tabId);
-      const peakDB = peakDBLevels[tabId] || -Infinity;
-
-      sendResponse({
-        db,
-        averageDB,
-        peakDB
-      });
-      return true; // Asynchronous response
-    } else if (message.type === 'resetPeak') {
-      // Reset maximum level
-      if (tabId) {
-        peakDBLevels[tabId] = -Infinity;
-        sendResponse({ success: true });
-      }
-      return true;
-    }
-  } catch (e) {
-    // Handle general errors
-    if (e.message.includes("Extension context invalidated")) {
-      return false;
-    }
+// Handle incoming messages
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  (async () => {
     try {
-      sendResponse({ error: e.message });
-    } catch (sendError) {
-    }
-    return true;
-  }
-});
-
-// Notify the content script when the configuration changes
-chrome.storage.onChanged.addListener((changes, area) => {
-  try {
-    // Check if context is valid
-    if (!isExtensionContextValid()) {
-      return;
-    }
-
-    if (area === 'local') {
-      for (const key in changes) {
-        if (isNaN(parseInt(key))) continue;
-
-        const tabId = parseInt(key);
-        const newConfig = changes[key].newValue;
-
-        try {
-          chrome.tabs.sendMessage(tabId, {
-            type: 'setConfig',
-            ...newConfig
-          }, response => {
+      const tabId = sender.tab?.id;
+      switch (msg.type) {
+        case 'getConfig': {
+          const data = await chromeAsync.getStorage(tabId.toString());
+          const cfg = data[tabId] || { enabled: false, limitDB: -20 };
+          sendResponse({ tabId, ...cfg });
+          break;
+        }
+        case 'updateDB': {
+          if (tabId == null) break;
+          const db = msg.db;
+          currentDB.set(tabId, db);
+          // update history - keep a shorter history for better reactivity
+          const hist = historyDB.get(tabId) ?? [];
+          if (hist.length >= 30) hist.shift();
+          if (isFinite(db)) hist.push(db);
+          historyDB.set(tabId, hist);
+          // update peak
+          const oldPeak = peakDB.get(tabId) ?? -Infinity;
+          peakDB.set(tabId, isFinite(db) && db > oldPeak ? db : oldPeak);
+          // notify popup
+          chrome.runtime.sendMessage({
+            type: 'updateDB', tabId, db,
+            averageDB: calcAverage(hist),
+            peakDB: peakDB.get(tabId)
           });
-        } catch (e) {
+          sendResponse({ success: true });
+          break;
+        }
+        case 'getCurrentDB': {
+          const db = currentDB.get(tabId) ?? -Infinity;
+          const hist = historyDB.get(tabId) ?? [];
+          sendResponse({ db, averageDB: calcAverage(hist), peakDB: peakDB.get(tabId) ?? -Infinity });
+          break;
+        }
+        case 'resetPeak': {
+          if (tabId != null) {
+            peakDB.set(tabId, -Infinity);
+            sendResponse({ success: true });
+          }
+          break;
         }
       }
+    } catch (err) {
+      console.error('bg message handler', err);
+      sendResponse({ error: err.message });
     }
-  } catch (e) {
-    // Handle general errors
-    if (!e.message.includes("Extension context invalidated")) {
-    }
+  })();
+  return true; // keep sendResponse alive
+});
+
+// Propagate config changes to content scripts
+chrome.storage.onChanged.addListener(async (changes, area) => {
+  if (area !== 'local') return;
+  for (const [key, { newValue }] of Object.entries(changes)) {
+    const tabId = Number(key);
+    if (Number.isNaN(tabId)) continue;
+    await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', ...newValue });
   }
 });
 
-// Clean levels when tab is closed
+// Clean up when tab closed
 chrome.tabs.onRemoved.addListener(tabId => {
-  try {
-    delete currentDBLevels[tabId];
-    delete dbHistory[tabId];
-    delete peakDBLevels[tabId];
-    chrome.storage.local.remove(tabId.toString());
-  } catch (e) {
-  }
+  currentDB.delete(tabId);
+  historyDB.delete(tabId);
+  peakDB.delete(tabId);
+  chrome.storage.local.remove(tabId.toString());
 });

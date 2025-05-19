@@ -1,75 +1,123 @@
-// Localization utility for Decibel Limiter extension
+/**
+ * @file Localization utility for Decibel Limiter extension
+ * @module Localization
+ */
 
-// Default language if browser language is not supported
 const DEFAULT_LANGUAGE = 'en';
-
-// Supported languages
 const SUPPORTED_LANGUAGES = ['en', 'es'];
+const LOCALES_PATH = '../assets/locale';
 
-// Store for loaded translations
-let translations = {};
+/**
+ * Singleton class for managing translations and locale-specific UI updates.
+ */
+export default class Localization {
+  /** @type {Localization} */
+  static instance;
 
-// Get the browser language (first two characters)
-function getBrowserLanguage() {
-  const language = navigator.language || navigator.userLanguage;
-  return language.split('-')[0]; // Get the base language code (e.g., 'en' from 'en-US')
-}
+  /** @type {string} */
+  #language;
 
-// Get the best matching language from supported languages
-function getLanguage() {
-  const browserLang = getBrowserLanguage();
-  return SUPPORTED_LANGUAGES.includes(browserLang) ? browserLang : DEFAULT_LANGUAGE;
-}
+  /** @type {Record<string, string>} */
+  #translations = {};
 
-// Load translations for the current language
-async function loadTranslations() {
-  const lang = getLanguage();
-  try {
-    const response = await fetch(`../assets/locale/${lang}.json`);
-    if (!response.ok) {
-      throw new Error(`Failed to load translations for ${lang}`);
+  constructor() {
+    if (Localization.instance) {
+      return Localization.instance;
     }
-    translations = await response.json();
-    return translations;
-  } catch (error) {
-    console.error(`Error loading translations: ${error.message}`);
-    // Fallback to default language if there's an error
-    if (lang !== DEFAULT_LANGUAGE) {
-      const fallbackResponse = await fetch(`../assets/locale/${DEFAULT_LANGUAGE}.json`);
-      translations = await fallbackResponse.json();
+    this.#language = this.#detectLanguage();
+    Localization.instance = this;
+  }
+
+  /**
+   * Obtiene el código de idioma del navegador (ej. "en" de "en-US").
+   * @returns {string}
+   */
+  #getBrowserLanguage() {
+    const navLang = navigator.languages?.[0] || navigator.language || navigator.userLanguage;
+    return navLang.split('-')[0].toLowerCase();
+  }
+
+  /**
+   * Decide el idioma a usar, comprobando si está soportado o usando el por defecto.
+   * @returns {string}
+   */
+  #detectLanguage() {
+    const browserLang = this.#getBrowserLanguage();
+    return SUPPORTED_LANGUAGES.includes(browserLang) ? browserLang : DEFAULT_LANGUAGE;
+  }
+
+  /**
+   * Carga el fichero JSON de traducciones para el idioma actual.
+   * Si falla, intenta cargar el idioma por defecto.
+   * @returns {Promise<Record<string, string>>}
+   */
+  async loadTranslations() {
+    const load = async (lang) => {
+      const url = `${LOCALES_PATH}/${lang}.json`;
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        throw new Error(`HTTP ${resp.status} - ${resp.statusText}`);
+      }
+      return resp.json();
+    };
+
+    try {
+      this.#translations = await load(this.#language);
+    } catch (err) {
+      console.warn(`No se pudieron cargar las traducciones (${this.#language}): ${err.message}`);
+      if (this.#language !== DEFAULT_LANGUAGE) {
+        this.#translations = await load(DEFAULT_LANGUAGE);
+        this.#language = DEFAULT_LANGUAGE;
+      }
     }
-    return translations;
+    return this.#translations;
+  }
+
+  /**
+   * Obtiene la traducción para una clave dada.
+   * Si no existe, devuelve la clave misma.
+   * @param {string} key
+   * @returns {string}
+   */
+  get(key) {
+    return this.#translations[key] || key;
+  }
+
+  /**
+   * Actualiza todos los elementos del DOM con atributo [data-i18n].
+   */
+  updateUI() {
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+      const key = el.dataset.i18n;
+      if (key) {
+        el.textContent = this.get(key);
+      }
+    });
+  }
+
+  /**
+   * Inicializa la localización: carga traducciones y actualiza la UI.
+   * @returns {Promise<Localization>}
+   */
+  async init() {
+    await this.loadTranslations();
+    this.updateUI();
+    return this;
+  }
+
+  /**
+   * Devuelve el idioma actualmente activo.
+   * @returns {string}
+   */
+  getCurrentLanguage() {
+    return this.#language;
   }
 }
 
-// Get a translated string by key
-function getTranslation(key) {
-  return translations[key] || key;
-}
-
-// Update all elements with data-i18n attribute
-function updateUITranslations() {
-  const elements = document.querySelectorAll('[data-i18n]');
-  elements.forEach(element => {
-    const key = element.getAttribute('data-i18n');
-    if (translations[key]) {
-      element.textContent = translations[key];
-    }
+// Inicialización automática al cargar el DOM
+document.addEventListener('DOMContentLoaded', () => {
+  const i18n = new Localization();
+  i18n.init().catch((err) => {
+    console.error('Error al inicializar i18n:', err);
   });
-}
-
-// Initialize localization
-async function initLocalization() {
-  await loadTranslations();
-  updateUITranslations();
-  return translations;
-}
-
-// Export functions
-window.i18n = {
-  getLanguage,
-  getTranslation,
-  loadTranslations,
-  updateUITranslations,
-  initLocalization
-};
+});
