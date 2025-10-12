@@ -58,11 +58,17 @@
       </div>
     </div>
 
-    <button id="toggleButton" class="toggle-button">
-      <span class="material-icons">power_settings_new</span>
-      <span id="toggleText" data-i18n="enable">Enable</span>
-    </button>
-
+    <div style="display: flex; margin-top: 16px; height: 40px; gap: 8px;">
+      <button id="toggleButton" class="toggle-button">
+        <span class="material-icons">power_settings_new</span>
+        <span id="toggleText" data-i18n="enable">Enable</span>
+      </button>
+      <button id="captureButton" class="toggle-button capture" style="width: 40px;">
+        <span class="material-icons" style="margin-right: 0;">
+          mic
+        </span>
+      </button>
+    </div>
     <div class="footer" data-i18n="footer">
       Control the volume of your navigation tabs
     </div>

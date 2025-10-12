@@ -1,4 +1,12 @@
-// Enumerated internal state
+/**
+ * @file Content script for decibel limiting on traditional HTML media elements
+ * @module ContentScript
+ */
+
+/**
+ * Enumerated internal state for the Limiter lifecycle.
+ * @enum {number}
+ */
 const State = Object.freeze({
   IDLE: 0,
   INITIALIZING: 1,
@@ -7,35 +15,66 @@ const State = Object.freeze({
 });
 
 /**
- * Tiny helper to execute a function and swallow/log errors
- * @param {Function} fn
+ * Safely executes a function and logs any errors without throwing.
+ * @param {Function} fn - Function to execute safely
  */
 function safe(fn) {
   try { fn(); } catch (err) { console.error(err); }
 }
 
+/**
+ * Singleton class that manages audio limiting for traditional HTML media elements.
+ * Scans DOM for audio/video elements and applies Web Audio API processing.
+ */
 class Limiter {
-  /** @type {Limiter|null} */
+  /** @type {Limiter|null} - Singleton instance */
   static #instance = null;
+  
+  /**
+   * Gets the singleton instance of Limiter.
+   * @returns {Limiter}
+   */
   static get() {
     if (!Limiter.#instance) Limiter.#instance = new Limiter();
     return Limiter.#instance;
   }
 
-  /* --- private fields --- */
+  /** @type {number} - Current lifecycle state */
   #state = State.IDLE;
+  
+  /** @type {AudioContext|null} - Web Audio API context */
   #audioCtx = null;
+  
+  /** @type {AnalyserNode|null} - Audio analyser for RMS calculation */
   #analyser = null;
-  #gainMap = new WeakMap();          // HTMLElement → GainNode
-  #processed = new WeakSet();        // HTMLElement already wired
+  
+  /** @type {WeakMap<HTMLElement, GainNode>} - Maps media elements to their gain nodes */
+  #gainMap = new WeakMap();
+  
+  /** @type {WeakSet<HTMLElement>} - Tracks already processed media elements */
+  #processed = new WeakSet();
+  
+  /** @type {number} - Current global gain value */
   #globalGain = 1;
+  
+  /** @type {{enabled: boolean, limitDB: number}} - Limiter configuration */
   #config = { enabled: false, limitDB: -20 };
+  
+  /** @type {MutationObserver|null} - DOM mutation observer */
   #observer = null;
+  
+  /** @type {number} - Timestamp of last decibel update sent */
   #lastSendTs = 0;
+  
+  /** @type {number|null} - Current tab ID */
   #tabId = null;
+  
+  /** @type {boolean} - Flag to prevent duplicate gesture listeners */
   #gestureListenersAdded = false;
 
-  /* ---------------------- public API ---------------------- */
+  /**
+   * Initializes the limiter: sets up listeners, scans DOM, and starts processing.
+   */
   init() {
     if (this.#state !== State.IDLE) return;
     this.#state = State.INITIALIZING;
@@ -43,7 +82,7 @@ class Limiter {
     this.#attachGestureListeners();
     this.#setupMessaging();
     this.#requestConfig(() => {
-      // After config, scan DOM & start observer
+      // After config is loaded, scan DOM and start observer
       this.#scanDom(document);
       this.#setupObserver();
       this.#startMeterLoop();
@@ -51,19 +90,30 @@ class Limiter {
     });
   }
 
-  /** Update config (called from background storage change) */
+  /**
+   * Updates the limiter configuration.
+   * Called when background storage changes.
+   * @param {Object} config - Configuration object
+   * @param {boolean} [config.enabled] - Whether limiting is enabled
+   * @param {number} [config.limitDB] - Decibel limit threshold
+   */
   updateConfig({ enabled, limitDB }) {
     if (typeof enabled === 'boolean') this.#config.enabled = enabled;
     if (typeof limitDB === 'number') this.#config.limitDB = limitDB;
   }
 
-  /* ---------------------- private helpers ---------------------- */
+  /**
+   * Creates and configures the Web Audio API context and analyser.
+   * @private
+   * @returns {AudioContext|null}
+   */
   #createAudioContext() {
     if (this.#audioCtx || this.#state === State.FAILED) return this.#audioCtx;
     try {
       this.#audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       this.#analyser = this.#audioCtx.createAnalyser();
       this.#analyser.fftSize = 2048;
+      this.#analyser.smoothingTimeConstant = 0; // No smoothing for accurate RMS
     } catch (err) {
       console.error('AudioContext error', err);
       this.#state = State.FAILED;
@@ -71,6 +121,10 @@ class Limiter {
     return this.#audioCtx;
   }
 
+  /**
+   * Resumes the audio context on user gesture (required by browser autoplay policies).
+   * @private
+   */
   #resumeContextOnGesture = () => {
     safe(() => {
       if (!this.#audioCtx) this.#createAudioContext();
@@ -80,6 +134,10 @@ class Limiter {
     });
   };
 
+  /**
+   * Attaches gesture listeners to resume audio context on user interaction.
+   * @private
+   */
   #attachGestureListeners() {
     if (this.#gestureListenersAdded) return;
     window.addEventListener('click', this.#resumeContextOnGesture, true);
@@ -87,9 +145,14 @@ class Limiter {
     this.#gestureListenersAdded = true;
   }
 
+  /**
+   * Connects a media element to the Web Audio API processing chain.
+   * @private
+   * @param {HTMLMediaElement} el - Audio or video element to connect
+   */
   #connectElement(el) {
     if (!el || this.#processed.has(el)) return;
-    if (!this.#createAudioContext()) return; // failed
+    if (!this.#createAudioContext()) return; // Failed to create context
 
     try {
       const source = this.#audioCtx.createMediaElementSource(el);
@@ -100,10 +163,16 @@ class Limiter {
       this.#gainMap.set(el, gain);
       this.#processed.add(el);
     } catch (err) {
-      // can throw if element already connected → ignore subsequent attempts
+      // Element already connected - ignore subsequent attempts
     }
   }
 
+  /**
+   * Recursively scans DOM for audio/video elements and connects them.
+   * Includes shadow DOM traversal.
+   * @private
+   * @param {Document|HTMLElement|ShadowRoot} root - Root element to scan from
+   */
   #scanDom(root) {
     if (!root) return;
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
@@ -112,11 +181,15 @@ class Limiter {
     while (walker.nextNode()) {
       this.#connectElement(/** @type {HTMLMediaElement} */(walker.currentNode));
     }
-    // shadow DOM recursion
+    // Recursively scan shadow DOM
     if (root.shadowRoot) safe(() => this.#scanDom(root.shadowRoot));
     [...root.children].forEach(child => safe(() => this.#scanDom(child)));
   }
 
+  /**
+   * Sets up MutationObserver to detect dynamically added media elements.
+   * @private
+   */
   #setupObserver() {
     if (this.#observer) return;
     this.#observer = new MutationObserver(muts => {
@@ -129,6 +202,11 @@ class Limiter {
     safe(() => this.#observer.observe(document.documentElement, { childList: true, subtree: true }));
   }
 
+  /**
+   * Calculates RMS (Root Mean Square) from audio analyser data.
+   * @private
+   * @returns {number} RMS value
+   */
   #calcRms() {
     if (!this.#analyser) return 0;
     const buffer = new Float32Array(this.#analyser.fftSize);
@@ -138,21 +216,35 @@ class Limiter {
     return Math.sqrt(sumSq / buffer.length);
   }
 
+  /**
+   * Calculates and applies gain limiting to all connected media elements.
+   * Sends decibel updates to background script.
+   * Uses professional attack/release times matching offscreen.js behavior.
+   * @private
+   */
   #applyGain() {
     const rms = this.#calcRms();
     const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
 
-    // Update gain according to configuration
+    // Calculate target gain based on configuration with attack/release
     if (this.#config.enabled) {
       const limitRms = Math.pow(10, this.#config.limitDB / 20);
-      this.#globalGain = rms > limitRms ?
-        Math.max(0.01, limitRms / rms) :
-        Math.min(1, this.#globalGain * 1.01);
+      
+      if (rms > limitRms) {
+        // ATTACK: Audio exceeds limit - reduce gain immediately (fast attack)
+        this.#globalGain = Math.max(0.01, limitRms / rms);
+      } else {
+        // RELEASE: Audio under limit - restore gain gradually
+        // Release time: ~100ms for perceptible but smooth recovery
+        // At 30 FPS (33ms per frame), increment by ~3% per frame
+        const releaseIncrement = 1.03;
+        this.#globalGain = Math.min(1.0, this.#globalGain * releaseIncrement);
+      }
     } else {
       this.#globalGain = 1;
     }
 
-    // Apply gain to media elements
+    // Apply calculated gain to all connected media elements
     document.querySelectorAll('audio, video').forEach(el => {
       if (el.isConnected) {
         const gain = this.#gainMap.get(el);
@@ -166,20 +258,27 @@ class Limiter {
       safe(() => chrome.runtime?.sendMessage({
         type: 'updateDB',
         db,
-        // Ensure the value is finite
+        // Ensure decibel value is finite before sending
         averageDB: isFinite(db) ? db : -Infinity
       }));
     }
   }
 
+  /**
+   * Starts the audio processing loop at approximately 30 FPS.
+   * @private
+   */
   #startMeterLoop() {
     setInterval(() => {
       if (this.#state !== State.READY) return;
       this.#applyGain();
-    }, 33); // ≈30 FPS
+    }, 33); // ~30 FPS
   }
 
-  // ---------------- messaging ----------------
+  /**
+   * Sets up message listener for communication with background script.
+   * @private
+   */
   #setupMessaging() {
     chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (msg.type === 'setConfig') {
@@ -190,6 +289,11 @@ class Limiter {
     });
   }
 
+  /**
+   * Requests initial configuration from background script.
+   * @private
+   * @param {Function} cb - Callback to execute after config is loaded
+   */
   #requestConfig(cb) {
     chrome.runtime.sendMessage({ type: 'getConfig' }, resp => {
       if (resp) {
@@ -201,5 +305,5 @@ class Limiter {
   }
 }
 
-// Bootstrap immediately
+// Initialize limiter immediately on script load
 Limiter.get().init();

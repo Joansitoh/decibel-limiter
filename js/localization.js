@@ -29,7 +29,7 @@ export default class Localization {
   }
 
   /**
-   * Obtiene el código de idioma del navegador (ej. "en" de "en-US").
+   * Retrieves the browser's language code (e.g., "en" from "en-US").
    * @returns {string}
    */
   #getBrowserLanguage() {
@@ -38,7 +38,7 @@ export default class Localization {
   }
 
   /**
-   * Decide el idioma a usar, comprobando si está soportado o usando el por defecto.
+   * Determines the language to use by checking if it's supported or falling back to default.
    * @returns {string}
    */
   #detectLanguage() {
@@ -47,8 +47,8 @@ export default class Localization {
   }
 
   /**
-   * Carga el fichero JSON de traducciones para el idioma actual.
-   * Si falla, intenta cargar el idioma por defecto.
+   * Loads the JSON translation file for the current language.
+   * Falls back to the default language if loading fails.
    * @returns {Promise<Record<string, string>>}
    */
   async loadTranslations() {
@@ -64,7 +64,7 @@ export default class Localization {
     try {
       this.#translations = await load(this.#language);
     } catch (err) {
-      console.warn(`No se pudieron cargar las traducciones (${this.#language}): ${err.message}`);
+      console.warn(`Failed to load translations (${this.#language}): ${err.message}`);
       if (this.#language !== DEFAULT_LANGUAGE) {
         this.#translations = await load(DEFAULT_LANGUAGE);
         this.#language = DEFAULT_LANGUAGE;
@@ -74,8 +74,8 @@ export default class Localization {
   }
 
   /**
-   * Obtiene la traducción para una clave dada.
-   * Si no existe, devuelve la clave misma.
+   * Retrieves the translation for a given key.
+   * Returns the key itself if no translation is found.
    * @param {string} key
    * @returns {string}
    */
@@ -84,7 +84,7 @@ export default class Localization {
   }
 
   /**
-   * Actualiza todos los elementos del DOM con atributo [data-i18n].
+   * Updates all DOM elements with the [data-i18n] attribute.
    */
   updateUI() {
     document.querySelectorAll('[data-i18n]').forEach((el) => {
@@ -96,7 +96,7 @@ export default class Localization {
   }
 
   /**
-   * Inicializa la localización: carga traducciones y actualiza la UI.
+   * Initializes localization: loads translations and updates the UI.
    * @returns {Promise<Localization>}
    */
   async init() {
@@ -106,7 +106,7 @@ export default class Localization {
   }
 
   /**
-   * Devuelve el idioma actualmente activo.
+   * Returns the currently active language.
    * @returns {string}
    */
   getCurrentLanguage() {
@@ -114,10 +114,10 @@ export default class Localization {
   }
 }
 
-// Inicialización automática al cargar el DOM
+// Automatic initialization on DOM load
 document.addEventListener('DOMContentLoaded', () => {
   const i18n = new Localization();
   i18n.init().catch((err) => {
-    console.error('Error al inicializar i18n:', err);
+    console.error('Failed to initialize i18n:', err);
   });
 });

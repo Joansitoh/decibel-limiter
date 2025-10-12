@@ -241,8 +241,16 @@ input[type="range"]::-webkit-slider-thumb {
   transition: var(--transition);
 }
 
-.toggle-button:hover {
+.toggle-button.capture {
+  background-color: var(--danger-color);
+}
+
+/* not apply for capture button */
+.toggle-button:hover:not(.capture) {
   background-color: var(--primary-hover);
+}
+
+.toggle-button:hover {
   transform: translateY(-2px);
 }
 
@@ -256,7 +264,39 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .toggle-button.enabled {
-  background-color: var(--danger-color);
+  background: var(--success-color);
+  color: white;
+}
+
+.capture-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.capture-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.capture-btn.active {
+  background: var(--success-color);
+}
+
+.capture-btn .material-icons {
+  font-size: 18px;
 }
 
 .footer {
