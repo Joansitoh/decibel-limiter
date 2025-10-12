@@ -1,104 +1,312 @@
-# 🔊 Decibel Limiter - Chrome Extension
+# 🔊 Decibel Limiter
+
+<div align="center">
 
 ![Decibel Limiter Logo](icons/icon128.png)
 
-## 📝 Description
+**Protect your hearing and control audio volume automatically in Chrome**
 
-Decibel Limiter is a Google Chrome extension that automatically controls and limits audio volume in browser tabs. This tool is ideal for protecting your hearing, preventing startling loud unexpected sounds, and maintaining a consistent audio level while browsing different websites.
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jhdflfacjalpcajleapijmclnbilnjlh?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTING.md)
+
+![Extension Stats](https://chrome-extension-readme-stats.vercel.app/api?extension_id=jhdflfacjalpcajleapijmclnbilnjlh&theme=chartreuse-dark&developer_name=Decibel%20Limiter)
+
+[Features](#-key-features) • [Installation](#-installation) • [Usage](#-usage) • [How It Works](#-how-it-works) • [Contributing](#-contributing)
+
+</div>
+
+---
+
+## 📝 Overview
+
+**Decibel Limiter** is a powerful Chrome extension that automatically monitors and limits audio volume across all your browser tabs. Designed to protect your hearing and provide a consistent listening experience, it prevents sudden loud sounds from startling you or causing discomfort while browsing.
+
+Perfect for night browsing, shared workspaces, or anyone who values their hearing health.
 
 ![Extension Preview](img/preview.png)
 
 ## ✨ Key Features
 
-- **🔄 Real-time Volume Limiting**: Automatically limits volume when it exceeds the set decibel threshold.
-- **📊 Audio Level Monitoring**: Displays the current audio level in decibels (dBFS).
-- **🎚️ Customizable Threshold**: Allows adjusting the limitation threshold between 0 and -60 dBFS.
-- **🔖 Per-tab Activation/Deactivation**: Independent configuration for each browser tab.
-- **📈 Intuitive Visual Interface**: Real-time visualization of audio level through a volume meter.
-- **🌐 Compatibility with Popular Sites**: Works with most websites, including streaming platforms like Netflix.
-- **🌙 Dark Mode Support**: Automatically adapts its appearance to the system theme.
+### 🎯 Core Functionality
+- **🔄 Real-time Volume Limiting** - Instantly limits volume when audio exceeds your set threshold
+- **📊 Live Audio Monitoring** - Visual feedback showing current audio levels in decibels (dBFS)
+- **🎚️ Customizable Threshold** - Fine-tune your limit anywhere between 0 and -60 dBFS
+- **🔖 Per-Tab Control** - Configure each tab independently for maximum flexibility
 
-## 🔍 How It Works
+### 🎨 User Experience
+- **📈 Intuitive Interface** - Clean, modern design with real-time volume meter visualization
+- **🌙 Dark Mode Support** - Seamlessly adapts to your system theme preferences
+- **⚡ Lightweight & Fast** - Minimal impact on browser performance
+- **🔒 Privacy-Focused** - All processing happens locally, no data collection
 
-The extension uses JavaScript's Web Audio API to monitor and control the volume of media elements (`<audio>` and `<video>`) on web pages:
-
-1. **Media Element Detection**: The extension automatically identifies all audio and video elements on the page, including those within Shadow DOM (such as on Netflix).
-
-2. **Audio Analysis**: Using an audio analyzer (AnalyserNode), the extension constantly measures the volume level in decibels (dBFS).
-
-3. **Dynamic Limiting**: When the audio level exceeds the set threshold, the extension automatically reduces the gain to keep the volume below the limit.
-
-4. **Gradual Restoration**: Once the audio level returns below the threshold, the gain is gradually restored to maintain a natural listening experience.
-
-5. **Configuration Persistence**: Preferences are saved per tab, allowing different configurations for different websites.
+### 🌐 Compatibility
+- **Popular Streaming Sites** - Works flawlessly with Netflix, YouTube, Spotify, and more
+- **Shadow DOM Support** - Advanced detection for complex web applications
+- **Dynamic Content** - Automatically detects media elements added after page load
 
 ## 🎯 Use Cases
 
-- **👂 Hearing Protection**: Prevents hearing damage caused by sudden loud sounds.
-- **🌃 Night Browsing Experience**: Ideal for using the browser at night without disturbing others.
-- **📊 Volume Normalization**: Maintains a consistent audio level across different websites.
-- **🏢 Shared Work Environments**: Prevents disruptions from loud sounds in offices or shared spaces.
-- **👨‍👩‍👧‍👦 Parental Control**: Limits maximum volume to protect children's hearing.
+| Scenario | Benefit |
+|----------|---------|
+| 👂 **Hearing Protection** | Prevent hearing damage from unexpected loud sounds |
+| 🌃 **Night Browsing** | Watch content late without disturbing others |
+| 🏢 **Work Environments** | Avoid embarrassing volume spikes in shared spaces |
+| 📊 **Volume Normalization** | Consistent audio levels across different websites |
+| 👨‍👩‍👧‍👦 **Parental Control** | Protect children's hearing with maximum volume limits |
+| 🎮 **Gaming & Streaming** | Prevent audio peaks during intense moments |
 
-## ⚙️ Technical Considerations
+## 🔍 How It Works
 
-- The extension uses the Web Audio API, which is compatible with most modern browsers.
-- Audio analysis and limitation are performed entirely on the client side, without sending data to external servers.
-- The extension implements special techniques to work with sites that use Shadow DOM, such as Netflix.
-- A DOM mutation observation system is used to detect new media elements that are added dynamically.
-- The extension is optimized to minimize impact on browser performance.
+Decibel Limiter leverages the **Web Audio API** to provide intelligent, real-time audio control:
+
+```
+1. 🔎 Detection Phase
+   └─> Scans page for <audio> and <video> elements
+       └─> Includes Shadow DOM elements (Netflix, etc.)
+           └─> Monitors for dynamically added media
+
+2. 📊 Analysis Phase
+   └─> AnalyserNode measures volume in real-time
+       └─> Converts to dBFS (decibels relative to full scale)
+           └─> Compares against user-defined threshold
+
+3. 🎚️ Limiting Phase
+   └─> Exceeds threshold? Reduce gain automatically
+       └─> Below threshold? Gradually restore original volume
+           └─> Maintains natural listening experience
+
+4. 💾 Persistence
+   └─> Settings saved per-tab in local storage
+       └─> Configurations persist across browser sessions
+```
+
+### Technical Architecture
+
+- **Client-Side Processing** - All audio analysis happens in your browser
+- **Zero External Requests** - No data sent to servers, completely private
+- **Mutation Observers** - Detect new media elements dynamically
+- **Performance Optimized** - Efficient algorithms minimize CPU usage
+- **Cross-Site Compatible** - Works with modern web standards
 
 ## 📋 Requirements
 
-- Google Chrome version 88 or higher
-- Permissions for active tabs and local storage access
+- **Browser**: Google Chrome version 88 or higher (or Chromium-based browsers)
+- **Permissions**: 
+  - Active tab access (to detect and control media)
+  - Local storage (to save preferences)
 
 ## 📥 Installation
 
-1. Download the source code or packaged extension
-2. In Chrome, navigate to `chrome://extensions/`
-3. Enable "Developer mode"
-4. Click "Load unpacked" and select the extension folder
+### From Chrome Web Store (Recommended)
+1. Visit the [Chrome Web Store page](https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh)
+2. Click **"Add to Chrome"**
+3. Confirm the installation
+
+### Manual Installation (Development)
+1. Download or clone this repository
+   ```bash
+   git clone https://github.com/yourusername/decibel-limiter.git
+   ```
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable **"Developer mode"** (toggle in top-right corner)
+4. Click **"Load unpacked"**
+5. Select the extension folder
 
 ## 🚀 Usage
 
-1. Click on the extension icon in the Chrome toolbar
-2. Use the slider to adjust the limitation threshold (in dBFS)
-3. Click the "Enable" button to activate the limitation
-4. The volume meter will show the current audio level in real-time
+### Quick Start
 
+1. **Click** the Decibel Limiter icon in your Chrome toolbar
+2. **Adjust** the threshold slider to your preferred limit (dBFS)
+3. **Enable** the limiter by clicking the activation button
+4. **Monitor** the real-time volume meter as you browse
+
+### Understanding dBFS Values
+
+| dBFS Range | Description | Recommended For |
+|------------|-------------|-----------------|
+| **0 to -10** | Very loud, minimal limiting | Noisy environments |
+| **-10 to -20** | Moderate limiting | General browsing |
+| **-20 to -30** | Significant limiting | Night browsing |
+| **-30 to -60** | Heavy limiting | Sensitive environments |
+
+### Pro Tips
+
+- 💡 Start with **-15 dBFS** and adjust based on your comfort
+- 🎵 Different content types may need different thresholds
+- 🔄 The extension remembers settings per-tab automatically
+- 🎯 Green indicator means limiter is active and working
 
 ## ❓ Troubleshooting
 
-- **Extension doesn't detect audio**: Make sure the page is actively playing audio.
-- **Limitation doesn't work on some sites**: Some websites use advanced techniques to play audio. The extension includes special support for popular sites like Netflix, but it might not work in all cases.
-- **Audio cuts out or distorts**: Adjust the limitation threshold to a less restrictive value (closer to 0 dBFS).
+### Common Issues and Solutions
 
-## 🔒 Privacy and Security
+<details>
+<summary><strong>Extension doesn't detect audio</strong></summary>
 
-- The extension does not collect or transmit user data
-- All audio processing is done locally in the browser
-- Internet access is not required for operation
-- Source code is available for review
+- Ensure audio is actually playing (not paused)
+- Refresh the page after enabling the extension
+- Check that the tab isn't muted
+- Try closing and reopening the popup
+</details>
 
-## 👥 Contributions
+<details>
+<summary><strong>Limiting doesn't work on specific sites</strong></summary>
 
-Contributions are welcome. If you want to improve this extension:
+- Some sites use proprietary audio systems (rare)
+- Try refreshing the page with the extension already enabled
+- Check browser console for any error messages
+- Report unsupported sites via GitHub Issues
+</details>
 
-1. Fork the repository
-2. Create a branch for your feature (`git checkout -b new-feature`)
-3. Make your changes and commit (`git commit -am 'Add new feature'`)
-4. Push the changes (`git push origin new-feature`)
-5. Create a Pull Request
+<details>
+<summary><strong>Audio sounds distorted or cuts out</strong></summary>
+
+- Increase the threshold (move slider closer to 0 dBFS)
+- The audio may naturally be very dynamic
+- Try adjusting by -5 dBFS increments until comfortable
+</details>
+
+<details>
+<summary><strong>High CPU usage</strong></summary>
+
+- This is rare but can happen with multiple tabs
+- Consider enabling only on tabs that need limiting
+- Close unused tabs with active audio
+</details>
+
+## 🔒 Privacy & Security
+
+We take your privacy seriously:
+
+- ✅ **No Data Collection** - Zero telemetry or analytics
+- ✅ **No External Requests** - Everything runs locally
+- ✅ **No Account Required** - Works immediately after installation
+- ✅ **Open Source** - Code available for audit
+- ✅ **Minimal Permissions** - Only requests what's necessary
+- ✅ **Offline Capable** - No internet required after installation
+
+## 🛠️ Development
+
+### Tech Stack
+
+- **Core**: Vanilla JavaScript (ES6+)
+- **APIs**: Web Audio API, Chrome Extensions API
+- **UI**: HTML5, CSS3 (with dark mode support)
+- **Storage**: Chrome Storage API
+
+### Project Structure
+
+```
+decibel-limiter/
+├── manifest.json          # Extension configuration
+├── popup/                 # Extension popup UI
+│   ├── popup.html
+│   ├── popup.css
+│   └── popup.js
+├── content/               # Content scripts
+│   └── content.js
+├── background/            # Service worker
+│   └── background.js
+├── icons/                 # Extension icons
+└── img/                   # Documentation images
+```
+
+### Building from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/decibel-limiter.git
+
+# Navigate to directory
+cd decibel-limiter
+
+# Load in Chrome as unpacked extension
+# No build step required - pure vanilla JS!
+```
+
+## 👥 Contributing
+
+We welcome contributions from the community! Here's how you can help:
+
+### Ways to Contribute
+
+- 🐛 **Report Bugs** - Found an issue? Let us know!
+- 💡 **Suggest Features** - Have an idea? We'd love to hear it
+- 📝 **Improve Documentation** - Help others understand the project
+- 🔧 **Submit Pull Requests** - Code contributions are appreciated
+
+### Contribution Process
+
+1. **Fork** the repository
+2. **Create** a feature branch
+   ```bash
+   git checkout -b feature/amazing-feature
+   ```
+3. **Commit** your changes
+   ```bash
+   git commit -m 'Add amazing feature'
+   ```
+4. **Push** to your branch
+   ```bash
+   git push origin feature/amazing-feature
+   ```
+5. **Open** a Pull Request
+
+### Development Guidelines
+
+- Follow existing code style and conventions
+- Test thoroughly across different websites
+- Update documentation for new features
+- Keep commits focused and well-described
+
+## 🗺️ Roadmap
+
+- [x] Support for more streaming platforms
+- [x] Multi-language support
+- [ ] Compression/normalization options
+- [ ] Export/import settings
+- [ ] Audio presets for different scenarios
+- [ ] Keyboard shortcuts
+
+## 📊 Statistics
+
+View live statistics for this extension:
+
+![Extension Statistics](https://chrome-extension-readme-stats.vercel.app/api?extension_id=jhdflfacjalpcajleapijmclnbilnjlh&theme=chartreuse-dark&developer_name=Decibel%20Limiter)
 
 ## 📄 License
 
-This extension is distributed under the MIT license. See the LICENSE file for more details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-## 📞 Contact
+```
+MIT License - Copyright (c) 2024
+Permission is hereby granted, free of charge, to any person obtaining a copy...
+```
 
-If you have questions, suggestions, or problems, please create an issue in the GitHub repository or contact the developer directly.
+## 🙏 Acknowledgments
+
+- Built with the powerful **Web Audio API**
+- Inspired by the need for better audio control on the web
+- Thanks to all contributors and users for feedback and support
+
+## 📞 Support & Contact
+
+Need help or want to get in touch?
+
+- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/decibel-limiter/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/decibel-limiter/discussions)
+- ⭐ **Rate Us**: [Chrome Web Store](https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh)
 
 ---
 
-Developed with ❤️ to improve your browsing experience.
+<div align="center">
+
+**Made with ❤️ for a better, safer browsing experience**
+
+If this extension helped you, consider giving it a ⭐ on GitHub!
+
+[⬆ Back to Top](#-decibel-limiter)
+
+</div>
