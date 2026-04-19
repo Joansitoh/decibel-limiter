@@ -4,7 +4,7 @@
     "description": "El nombre de la extensión"
   },
   "extensionDescription": {
-    "message": "Limita el nivel máximo de decibelios en una pestaña de Chrome",
+    "message": "Limita el nivel máximo de decibelios en una pestaña del navegador",
     "description": "La descripción de la extensión"
   },
   "currentLevel": {
@@ -30,6 +30,34 @@
   "disable": {
     "message": "Desactivar",
     "description": "Texto del botón de desactivación"
+  },
+  "mainToggleTitle": {
+    "message": "Activar/Desactivar",
+    "description": "Título para el botón principal"
+  },
+  "micTitle": {
+    "message": "Modo mejorado",
+    "description": "Título para el toggle de micrófono"
+  },
+  "infoButtonTitle": {
+    "message": "¿Qué es el modo mejorado?",
+    "description": "Título para el botón de información"
+  },
+  "enhancedModeTitle": {
+    "message": "Modo mejorado",
+    "description": "Título para información del modo mejorado"
+  },
+  "enhancedModeDesc": {
+    "message": "Activa la captura directa del audio de la pestaña para poder mostrar el promedio de decibelios y limitar el sonido en páginas que bloquean la captura normal. Puede solicitar permisos adicionales.",
+    "description": "Descripción para modo mejorado"
+  },
+  "enhancedModeMuted": {
+    "message": "Aviso: mientras está activo, el navegador puede impedir entrar en pantalla completa automáticamente en algunas páginas — puede que debas pulsar F11 manualmente.",
+    "description": "Nota breve para modo mejorado sobre el efecto en pantalla completa"
+  },
+  "closeLabel": {
+    "message": "Cerrar",
+    "description": "Etiqueta para el botón cerrar en el panel de información"
   },
   "footer": {
     "message": "Controla el volumen de tus pestañas de navegación",

@@ -2,6 +2,9 @@
   --primary: #6a4dff;
   --primary-hover: #7b61ff;
   --primary-light: #b47bff;
+  --success-color: #2ecc71;
+  --warn-color: #ffb020;
+  --danger-color: #ff4d4f;
   --bg: #f8f9fa;
   --bg-card: #ffffff;
   --text: #222;
@@ -52,24 +55,46 @@ body {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+}
+
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  text-decoration: none;
 }
 
 .header-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+  display: block;
+  background: var(--bg-card);
+  padding: 8px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.20);
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .header-text h1 {
   margin: 0;
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .subtitle {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
+  line-height: 1.1;
 }
 
 .github-link {
@@ -114,7 +139,7 @@ body {
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transition: width 0.1s ease-out;
+  transition: width 0.12s ease-out, background 0.18s ease-out;
 }
 
 .scale-markers {
@@ -173,6 +198,39 @@ input[type="range"]::-webkit-slider-thumb:hover {
   gap: 8px;
 }
 
+/* Combined main button with inline mic toggle */
+.main-btn.combined {
+  position: relative;
+  padding-right: 56px; /* space for mic toggle */
+  align-items: center;
+}
+
+.mic-toggle {
+  position: absolute;
+  right: 8px;
+  top: 6px;
+  width: 40px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--track);
+  color: var(--primary-light);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+.mic-toggle:active {
+  transform: translateY(1px);
+}
+
+.mic-toggle.enabled {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(106,77,255,0.18);
+}
+
 .main-btn.enabled {
   background: var(--primary);
   color: white;
@@ -205,6 +263,62 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .icon-btn:hover {
   background: var(--track-dark);
   color: var(--primary);
+}
+
+.info-btn {
+  width: 42px;
+  aspect-ratio: 1 / 1;
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: 8px;
+}
+
+.info-btn:hover {
+  background: var(--track);
+  color: var(--text);
+}
+
+.enhanced-info {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Ensure hidden attribute actually hides the element (our rules may override UA styles) */
+.enhanced-info[hidden] {
+  display: none !important;
+}
+
+.info-card {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  box-shadow: none;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.close-info {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-dim);
+}
+
+.muted {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-top: 6px;
 }
 
 .footer {

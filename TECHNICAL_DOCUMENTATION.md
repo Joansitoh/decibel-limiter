@@ -36,7 +36,7 @@ The extension follows a modular architecture with **dual-mode processing** and f
 2. **Offscreen Document** ([offscreen.js](cci:7://file:///c:/Users/joans/Sources/decibel-limiter/js/offscreen.js:0:0-0:0)):
 
    - Handles enhanced mode processing
-   - Uses Chrome's tabCapture API for universal audio capture
+   - Uses the browser's tabCapture API (Chromium-based) for universal audio capture
    - Processes entire tab audio stream
    - Supports modern streaming services
 
@@ -66,7 +66,7 @@ The extension follows a modular architecture with **dual-mode processing** and f
 
 ### Offscreen Document (Enhanced Mode)
 
-- **Tab Capture**: Uses Chrome's tabCapture API for universal audio access
+- **Tab Capture**: Uses the browser's tabCapture API (Chromium-based) for universal audio access
 - **Stream Processing**: Processes entire tab audio stream
 - **Identical Algorithm**: Same RMS and gain logic as content script
 - **Service Compatibility**: Works with MSE and Web Audio API streams
@@ -77,7 +77,7 @@ The extension follows a modular architecture with **dual-mode processing** and f
 - **State Management**: Tabs, audio levels, and settings
 - **Message Routing**: Handles communication between components
 - **Statistics**: Calculates exponential moving averages and peaks
-- **Storage**: Manages persistent settings with Chrome storage API
+- **Storage**: Manages persistent settings with browser storage APIs (Chromium-compatible)
 - **Tab Capture Orchestration**: Manages offscreen document lifecycle
 
 ### Popup UI
@@ -85,7 +85,7 @@ The extension follows a modular architecture with **dual-mode processing** and f
 - **Real-time Metering**: Visual feedback of audio levels
 - **Configuration**: User settings interface
 - **Theme Support**: Light/dark mode detection
-- **Localization**: Multi-language support via Chrome i18n
+- **Localization**: Multi-language support via the extensions i18n API (Chromium-compatible)
 - **Enhanced Mode Toggle**: Microphone button for manual activation
 
 ## Audio Processing
@@ -145,7 +145,7 @@ if (rms > limitRms) {
 - **Batched Updates**: Reduced message frequency
 - **Memory Efficiency**: Limited history size (30 samples)
 - **Lazy Loading**: Resources loaded when needed
-- **Async Operations**: Promisified Chrome APIs
+- **Async Operations**: Promisified browser extension APIs
 
 ### UI Rendering
 
@@ -183,7 +183,7 @@ if (rms > limitRms) {
 
 ### Cross-Browser Compatibility
 
-- **Target**: Chromium-based browsers (Chrome, Edge, Opera)
+- **Target**: Chromium-based browsers (Edge, Opera, etc.)
 - **Required APIs**: Web Audio API, tabCapture, offscreen documents
 - **Manifest V3**: Uses service worker architecture
 - **Feature Detection**: Graceful degradation for unsupported features
@@ -249,7 +249,7 @@ La extensión sigue una arquitectura modular con **procesamiento de doble modo**
 2. **Documento Offscreen** ([offscreen.js](cci:7://file:///c:/Users/joans/Sources/decibel-limiter/js/offscreen.js:0:0-0:0)):
 
    - Maneja el procesamiento en modo enhanced
-   - Usa la API tabCapture de Chrome para captura universal de audio
+   - Usa la API tabCapture del navegador (basada en Chromium) para captura universal de audio
    - Procesa el stream de audio completo de la pestaña
    - Soporta servicios de streaming modernos
 
@@ -279,7 +279,7 @@ La extensión sigue una arquitectura modular con **procesamiento de doble modo**
 
 ### Documento Offscreen (Modo Enhanced)
 
-- **Captura de Pestaña**: Usa la API tabCapture de Chrome para acceso universal al audio
+- **Captura de Pestaña**: Usa la API tabCapture del navegador (basada en Chromium) para acceso universal al audio
 - **Procesamiento de Stream**: Procesa el stream de audio completo de la pestaña
 - **Algoritmo Idéntico**: Misma lógica RMS y ganancia que el script de contenido
 - **Compatibilidad de Servicios**: Funciona con streams MSE y Web Audio API
@@ -290,7 +290,7 @@ La extensión sigue una arquitectura modular con **procesamiento de doble modo**
 - **Gestión de Estado**: Pestañas, niveles de audio y configuraciones
 - **Enrutamiento de Mensajes**: Maneja la comunicación entre componentes
 - **Estadísticas**: Calcula promedios móviles exponenciales y picos
-- **Almacenamiento**: Gestiona configuraciones persistentes con Chrome storage API
+- **Almacenamiento**: Gestiona configuraciones persistentes con APIs de almacenamiento del navegador (compatibles con Chromium)
 - **Orquestación de Captura**: Gestiona el ciclo de vida del documento offscreen
 
 ### Interfaz Emergente
@@ -298,7 +298,7 @@ La extensión sigue una arquitectura modular con **procesamiento de doble modo**
 - **Medición en Tiempo Real**: Retroalimentación visual de niveles de audio
 - **Configuración**: Interfaz de ajustes de usuario
 - **Soporte de Temas**: Detección de modo claro/oscuro
-- **Localización**: Soporte multiidioma vía Chrome i18n
+- **Localización**: Soporte multiidioma vía la API i18n de extensiones del navegador (compatibles con Chromium)
 - **Toggle Modo Enhanced**: Botón micrófono para activación manual
 
 ## Procesamiento de Audio
@@ -358,7 +358,7 @@ if (rms > limitRms) {
 - **Actualizaciones por Lotes**: Frecuencia de mensajes reducida
 - **Eficiencia de Memoria**: Tamaño de historial limitado (30 muestras)
 - **Carga Perezosa**: Recursos cargados cuando son necesarios
-- **Operaciones Async**: APIs de Chrome promisificadas
+- **Operaciones Async**: APIs de extensiones del navegador promisificadas
 
 ### Renderizado de UI
 
@@ -396,7 +396,7 @@ if (rms > limitRms) {
 
 ### Compatibilidad entre Navegadores
 
-- **Objetivo**: Navegadores basados en Chromium (Chrome, Edge, Opera)
+- **Objetivo**: Navegadores basados en Chromium (Edge, Opera, etc.)
 - **APIs Requeridas**: Web Audio API, tabCapture, documentos offscreen
 - **Manifest V3**: Usa arquitectura de service worker
 - **Detección de Características**: Degradación elegante para características no soportadas

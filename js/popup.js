@@ -36,15 +36,20 @@
 
     #cacheElements() {
       const qs = id => document.getElementById(id);
+      const q = sel => document.querySelector(sel);
 
       this.#elements = {
         averageDB: qs('averageDB'),
         meterFill: qs('meterFill'),
         limitSlider: qs('limitSlider'),
         limitValue: qs('limitValue'),
-        toggleButton: qs('toggleButton'),
-        captureButton: qs('captureButton'),
+        mainToggle: qs('mainToggle'),
+        micToggle: qs('micToggle'),
         toggleText: qs('toggleText'),
+        infoButton: qs('infoButton'),
+        enhancedInfo: qs('enhancedInfo'),
+        closeInfo: qs('closeInfo'),
+        headerIconWrap: q('.header-icon-wrap'),
       };
     }
 
@@ -53,6 +58,20 @@
         const key = el.dataset.i18n;
         el.textContent = chrome.i18n.getMessage(key) || el.textContent;
       });
+
+      // Attributes: title and aria-label via data-i18n-title / data-i18n-aria
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.dataset.i18nTitle;
+        const msg = chrome.i18n.getMessage(key);
+        if (msg) el.title = msg;
+      });
+
+      document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+        const key = el.dataset.i18nAria;
+        const msg = chrome.i18n.getMessage(key);
+        if (msg) el.setAttribute('aria-label', msg);
+      });
+
       document.title = chrome.i18n.getMessage('extensionName');
     }
 
@@ -77,23 +96,29 @@
         this.#saveConfig();
       });
 
-      // Enable/disable limiter
-      this.#elements.toggleButton.addEventListener('click', () => {
+      // Enable/disable limiter (main button)
+      this.#elements.mainToggle.addEventListener('click', (e) => {
+        // If the mic toggle was clicked, ignore (mic has its own handler)
+        if (e.target.closest && e.target.closest('.mic-toggle')) return;
+
         this.#config.enabled = !this.#config.enabled;
-        this.#elements.toggleButton.classList.toggle('enabled', this.#config.enabled);
+        this.#elements.mainToggle.classList.toggle('enabled', this.#config.enabled);
         this.#elements.toggleText.textContent = chrome.i18n.getMessage(
           this.#config.enabled ? 'disable' : 'enable'
         );
+        this.#elements.headerIconWrap?.classList.toggle('active', this.#config.enabled);
         this.#saveConfig();
       });
 
-      // Capture mode (mic icon)
-      this.#elements.captureButton.addEventListener('click', () => {
+      // Mic toggle (inside main button) - toggles enhanced capture
+      this.#elements.micToggle.addEventListener('click', (e) => {
+        e.stopPropagation(); // prevent main button click
         this.#config.captureEnabled = !this.#config.captureEnabled;
 
-        this.#elements.captureButton.classList.toggle('enabled', this.#config.captureEnabled);
+        this.#elements.micToggle.classList.toggle('enabled', this.#config.captureEnabled);
+        this.#elements.micToggle.setAttribute('aria-pressed', String(!!this.#config.captureEnabled));
 
-        const icon = this.#elements.captureButton.querySelector('.material-icons');
+        const icon = this.#elements.micToggle.querySelector('.material-icons');
         icon.textContent = this.#config.captureEnabled ? 'mic' : 'mic_off';
 
         chrome.runtime.sendMessage({
@@ -102,6 +127,19 @@
         });
 
         this.#saveConfig();
+      });
+
+      // Enhanced mode info toggle
+      this.#elements.infoButton?.addEventListener('click', () => {
+        const info = this.#elements.enhancedInfo;
+        if (!info) return;
+        const isHidden = info.hasAttribute('hidden');
+        if (isHidden) info.removeAttribute('hidden');
+        else info.setAttribute('hidden', '');
+      });
+
+      this.#elements.closeInfo?.addEventListener('click', () => {
+        this.#elements.enhancedInfo?.setAttribute('hidden', '');
       });
     }
 
@@ -135,14 +173,16 @@
       this.#elements.limitSlider.value = this.#config.limitDB;
       this.#elements.limitValue.textContent = `${this.#config.limitDB} dBFS`;
 
-      this.#elements.toggleButton.classList.toggle('enabled', this.#config.enabled);
+      this.#elements.mainToggle.classList.toggle('enabled', this.#config.enabled);
       this.#elements.toggleText.textContent = chrome.i18n.getMessage(
         this.#config.enabled ? 'disable' : 'enable'
       );
+      this.#elements.headerIconWrap?.classList.toggle('active', this.#config.enabled);
 
-      this.#elements.captureButton.classList.toggle('enabled', this.#config.captureEnabled);
-      this.#elements.captureButton.querySelector('.material-icons').textContent =
-        this.#config.captureEnabled ? 'mic' : 'mic_off';
+      this.#elements.micToggle.classList.toggle('enabled', this.#config.captureEnabled);
+      const micIcon = this.#elements.micToggle.querySelector('.material-icons');
+      if (micIcon) micIcon.textContent = this.#config.captureEnabled ? 'mic' : 'mic_off';
+      this.#elements.micToggle?.setAttribute('aria-pressed', String(!!this.#config.captureEnabled));
     }
 
     #saveConfig() {
@@ -154,7 +194,8 @@
         }
       });
 
-      chrome.runtime.sendMessage({ type: 'setConfig', ...this.#config });
+      // Include the tabId so the background service worker knows which tab this applies to
+      chrome.runtime.sendMessage({ type: 'setConfig', tabId: this.#tabId, ...this.#config });
     }
 
     async #requestCurrentDB() {
@@ -201,10 +242,29 @@
 
           this.#elements.meterFill.style.width = `${pct}%`;
 
-          this.#elements.meterFill.style.backgroundColor =
-            displayDB > -10 ? 'var(--danger-color)' :
-            displayDB > this.#config.limitDB ? 'var(--success-color)' :
-            'var(--primary-color)';
+          // Color logic:
+          // - danger when above a hard threshold (very loud)
+          // - warn when above the configured limit (approaching/exceeding limit)
+          // - normal primary otherwise
+          const warnStart = this.#config.limitDB - 6; // 6 dB window before limit
+
+          if (displayDB > -10) {
+            // Very loud: red gradient
+            this.#elements.meterFill.style.background =
+              'linear-gradient(90deg, var(--danger-color), #ff6b6b)';
+          } else if (displayDB > this.#config.limitDB) {
+            // Above limit: warn -> red gradient
+            this.#elements.meterFill.style.background =
+              'linear-gradient(90deg, var(--warn-color), var(--danger-color))';
+          } else if (displayDB > warnStart) {
+            // Approaching limit: subtle warn (primary -> warn)
+            this.#elements.meterFill.style.background =
+              'linear-gradient(90deg, var(--primary), var(--warn-color))';
+          } else {
+            // Normal: primary gradient
+            this.#elements.meterFill.style.background =
+              'linear-gradient(90deg, var(--primary), var(--primary-light))';
+          }
         } else {
           this.#elements.meterFill.style.width = '0%';
         }
@@ -217,3 +277,4 @@
 
   new Popup();
 })();
+

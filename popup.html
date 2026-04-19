@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -13,16 +13,16 @@
   <div class="container">
     <header class="header">
       <div class="header-left">
-        <img src="icons/icon128.png" class="header-icon" alt="Icon" />
+        <a href="https://github.com/Joansitoh" target="_blank" class="brand-link" title="GitHub">
+          <img src="icons/icon128.png" class="header-icon" alt="Icon" />
+        </a>
         <div class="header-text">
           <h1 data-i18n="extensionName">Decibel Limiter</h1>
-          <span class="subtitle">Audio limiter for Chrome tabs</span>
+          <span class="subtitle" data-i18n="extensionDescription">Audio limiter for browser tabs</span>
         </div>
       </div>
 
-      <a href="https://github.com/Joansitoh" target="_blank" class="github-link" title="GitHub">
-        <span class="material-icons">code</span>
-      </a>
+      
     </header>
 
     <div class="card meter-card">
@@ -54,14 +54,28 @@
     </div>
 
     <div class="button-row">
-      <button id="toggleButton" class="btn main-btn">
+      <button id="mainToggle" class="btn main-btn combined" data-i18n-title="mainToggleTitle">
         <span class="material-icons">power_settings_new</span>
-        <span id="toggleText">Enable</span>
+        <span id="toggleText" data-i18n="enable">Enable</span>
+        <span id="micToggle" class="mic-toggle" role="button" aria-pressed="false" data-i18n-title="micTitle">
+          <span class="material-icons">mic</span>
+        </span>
       </button>
 
-      <button id="captureButton" class="btn icon-btn" title="Enhanced Mode">
-        <span class="material-icons">mic</span>
+      <button id="infoButton" class="btn info-btn" data-i18n-title="infoButtonTitle">
+        <span class="material-icons">info</span>
       </button>
+    </div>
+
+    <div id="enhancedInfo" class="enhanced-info" hidden>
+      <div class="info-card card">
+        <div class="info-row">
+          <strong data-i18n="enhancedModeTitle">Enhanced Mode</strong>
+          <button id="closeInfo" class="close-info" data-i18n-aria="closeLabel">×</button>
+        </div>
+        <p data-i18n="enhancedModeDesc">Improves detection and processing by capturing the tab's audio directly. Provides more accurate measurements and a more reliable limiter, but may request additional permissions.</p>
+        <p class="muted" data-i18n="enhancedModeMuted">Use when you need maximum accuracy on complex audio tabs.</p>
+      </div>
     </div>
 
     <footer class="footer" data-i18n="footer">Control the volume of your navigation tabs</footer>

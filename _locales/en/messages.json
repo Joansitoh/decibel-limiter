@@ -4,7 +4,7 @@
     "description": "The name of the extension"
   },
   "extensionDescription": {
-    "message": "Limit the maximum decibel level in a Chrome tab",
+    "message": "Limit the maximum decibel level in a browser tab",
     "description": "The description of the extension"
   },
   "currentLevel": {
@@ -30,6 +30,34 @@
   "disable": {
     "message": "Disable",
     "description": "Disable button text"
+  },
+  "mainToggleTitle": {
+    "message": "Enable/Disable",
+    "description": "Title for the main toggle button"
+  },
+  "micTitle": {
+    "message": "Enhanced Mode",
+    "description": "Title for the mic toggle"
+  },
+  "infoButtonTitle": {
+    "message": "What is Enhanced Mode?",
+    "description": "Title for the info button"
+  },
+  "enhancedModeTitle": {
+    "message": "Enhanced Mode",
+    "description": "Title for enhanced mode info"
+  },
+  "enhancedModeDesc": {
+    "message": "Enables direct tab audio capture so the extension can measure average decibels and apply limiting on pages that block normal audio capture. May request additional permissions.",
+    "description": "Description for enhanced mode"
+  },
+  "enhancedModeMuted": {
+    "message": "Note: while active, the browser may prevent entering fullscreen automatically on some pages — you may need to press F11 manually.",
+    "description": "Short note for enhanced mode about fullscreen impact"
+  },
+  "closeLabel": {
+    "message": "Close",
+    "description": "Label for close button on info panel"
   },
   "footer": {
     "message": "Control the volume of your navigation tabs",

@@ -102,6 +102,63 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ db, averageDB: calcAverage(hist), peakDB: peakDB.get(tabId) ?? -Infinity });
           break;
         }
+        case 'setConfig': {
+          // Called by popup to update per-tab config (enabled, limitDB, captureEnabled)
+          try {
+            const enabled = !!msg.enabled;
+            const limitDB = Number.isFinite(msg.limitDB) ? msg.limitDB : -20;
+            const captureEnabled = !!msg.captureEnabled;
+
+            // Persist the config per-tab when tabId is provided
+            if (tabId != null) {
+              const tabKey = String(tabId);
+              try {
+                await chromeAsync.setStorage({ [tabKey]: { enabled, limitDB, captureEnabled } });
+              } catch (e) {
+                // ignore storage errors
+              }
+
+              // Apply to the tab's content script (if present)
+              try {
+                await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', enabled, limitDB, captureEnabled });
+              } catch (e) {
+                // ignore if no content script
+              }
+
+              // Manage capture state according to config
+              if (captureEnabled) {
+                try { await startTabCapture(tabId); } catch (e) { /* ignore */ }
+              } else {
+                try { await stopTabCapture(tabId); } catch (e) { /* ignore */ }
+              }
+
+              // Set badge for visual feedback on that tab
+              if (enabled) {
+                chrome.action.setBadgeText({ tabId, text: 'ON' });
+                chrome.action.setBadgeBackgroundColor({ tabId, color: '#2ecc71' });
+                chrome.action.setTitle({ tabId, title: 'Decibel Limiter — Enabled' });
+              } else {
+                chrome.action.setBadgeText({ tabId, text: '' });
+                chrome.action.setTitle({ tabId, title: 'Decibel Limiter' });
+              }
+            } else {
+              // No tabId: store globally (not per-tab) and update badge/title globally
+              try { await chromeAsync.setStorage({ globalConfig: { enabled, limitDB, captureEnabled } }); } catch (e) {}
+              if (enabled) {
+                chrome.action.setBadgeText({ text: 'ON' });
+                chrome.action.setBadgeBackgroundColor({ color: '#2ecc71' });
+                chrome.action.setTitle({ title: 'Decibel Limiter — Enabled' });
+              } else {
+                chrome.action.setBadgeText({ text: '' });
+                chrome.action.setTitle({ title: 'Decibel Limiter' });
+              }
+            }
+          } catch (err) {
+            console.warn('setConfig handler error', err);
+          }
+          sendResponse({ success: true });
+          break;
+        }
         case 'resetPeak': {
           if (tabId != null) {
             peakDB.set(tabId, -Infinity);
@@ -255,4 +312,60 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   }
 
   chrome.storage.local.remove(tabId.toString());
+});
+
+// When a tab becomes active, apply stored configuration for that tab (re-activate if needed)
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  try {
+    const tabId = activeInfo.tabId;
+    const key = String(tabId);
+    const data = await chromeAsync.getStorage(key);
+    const cfg = data[key] || {};
+
+    // Send config to content script
+    try { await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', ...cfg }); } catch (e) {}
+
+    // If enhanced capture was active previously, try to re-start it
+    if (cfg.captureEnabled) {
+      try { await startTabCapture(tabId); } catch (e) { }
+    }
+
+    // Ensure the action badge reflects enabled state for this tab
+    if (cfg.enabled) {
+      chrome.action.setBadgeText({ tabId, text: 'ON' });
+      chrome.action.setBadgeBackgroundColor({ tabId, color: '#2ecc71' });
+      chrome.action.setTitle({ tabId, title: 'Decibel Limiter — Enabled' });
+    } else {
+      chrome.action.setBadgeText({ tabId, text: '' });
+      chrome.action.setTitle({ tabId, title: 'Decibel Limiter' });
+    }
+  } catch (err) {
+    // ignore
+  }
+});
+
+// When a tab finishes loading (navigation), re-apply stored config so new page gets settings
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+  try {
+    if (changeInfo.status !== 'complete') return;
+    const key = String(tabId);
+    const data = await chromeAsync.getStorage(key);
+    const cfg = data[key] || {};
+    try { await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', ...cfg }); } catch (e) {}
+    if (cfg.captureEnabled) {
+      try { await startTabCapture(tabId); } catch (e) { }
+    }
+
+    // Update badge to match stored enabled state
+    if (cfg.enabled) {
+      chrome.action.setBadgeText({ tabId, text: 'ON' });
+      chrome.action.setBadgeBackgroundColor({ tabId, color: '#2ecc71' });
+      chrome.action.setTitle({ tabId, title: 'Decibel Limiter — Enabled' });
+    } else {
+      chrome.action.setBadgeText({ tabId, text: '' });
+      chrome.action.setTitle({ tabId, title: 'Decibel Limiter' });
+    }
+  } catch (err) {
+    // ignore
+  }
 });

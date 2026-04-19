@@ -4,9 +4,9 @@
 
 ![Decibel Limiter Logo](icons/icon128.png)
 
-**Protect your hearing and control audio volume automatically in Chrome**
+**Protect your hearing and control audio volume automatically in your browser**
 
-[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jhdflfacjalpcajleapijmclnbilnjlh?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh)
+[![Browser Web Store](https://img.shields.io/chrome-web-store/v/jhdflfacjalpcajleapijmclnbilnjlh?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTING.md)
 
@@ -20,7 +20,7 @@
 
 ## 📝 Overview
 
-**Decibel Limiter** is a powerful Chrome extension that automatically monitors and limits audio volume across all your browser tabs. Designed to protect your hearing and provide a consistent listening experience, it prevents sudden loud sounds from startling you or causing discomfort while browsing.
+**Decibel Limiter** is a powerful browser extension that automatically monitors and limits audio volume across all your browser tabs. Designed to protect your hearing and provide a consistent listening experience, it prevents sudden loud sounds from startling you or causing discomfort while browsing.
 
 Perfect for night browsing, shared workspaces, or anyone who values their hearing health.
 
@@ -89,18 +89,18 @@ Decibel Limiter leverages the **Web Audio API** to provide intelligent, real-tim
 - **Performance Optimized** - Efficient algorithms minimize CPU usage
 - **Cross-Site Compatible** - Works with modern web standards
 
-## 📋 Requirements
+- ## 📋 Requirements
 
-- **Browser**: Google Chrome version 88 or higher (or Chromium-based browsers)
+- **Browser**: Chromium-based browser version 88 or higher
 - **Permissions**: 
   - Active tab access (to detect and control media)
   - Local storage (to save preferences)
 
 ## 📥 Installation
 
-### From Chrome Web Store (Recommended)
-1. Visit the [Chrome Web Store page](https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh)
-2. Click **"Add to Chrome"**
+### From the browser extension store (Recommended)
+1. Visit the extension store page (link provided in the project header)
+2. Click **"Add to browser"**
 3. Confirm the installation
 
 ### Manual Installation (Development)
@@ -108,7 +108,7 @@ Decibel Limiter leverages the **Web Audio API** to provide intelligent, real-tim
    ```bash
    git clone https://github.com/yourusername/decibel-limiter.git
    ```
-2. Open Chrome and navigate to `chrome://extensions/`
+2. Open your browser and navigate to `chrome://extensions/`
 3. Enable **"Developer mode"** (toggle in top-right corner)
 4. Click **"Load unpacked"**
 5. Select the extension folder
@@ -117,7 +117,7 @@ Decibel Limiter leverages the **Web Audio API** to provide intelligent, real-tim
 
 ### Quick Start
 
-1. **Click** the Decibel Limiter icon in your Chrome toolbar
+1. **Click** the Decibel Limiter icon in your browser toolbar
 2. **Adjust** the threshold slider to your preferred limit (dBFS)
 3. **Enable** the limiter by clicking the activation button
 4. **Monitor** the real-time volume meter as you browse
@@ -192,9 +192,9 @@ We take your privacy seriously:
 ### Tech Stack
 
 - **Core**: Vanilla JavaScript (ES6+)
-- **APIs**: Web Audio API, Chrome Extensions API
+- **APIs**: Web Audio API, browser extensions APIs (Chromium-compatible)
 - **UI**: HTML5, CSS3 (with dark mode support)
-- **Storage**: Chrome Storage API
+- **Storage**: browser storage APIs (Chromium-compatible)
 
 ### Project Structure
 
@@ -222,7 +222,7 @@ git clone https://github.com/yourusername/decibel-limiter.git
 # Navigate to directory
 cd decibel-limiter
 
-# Load in Chrome as unpacked extension
+# Load in browser as unpacked extension
 # No build step required - pure vanilla JS!
 ```
 
@@ -297,7 +297,7 @@ Need help or want to get in touch?
 
 - 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/decibel-limiter/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/decibel-limiter/discussions)
-- ⭐ **Rate Us**: [Chrome Web Store](https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh)
+- ⭐ **Rate Us**: [Browser Web Store](https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh)
 
 ---
 
