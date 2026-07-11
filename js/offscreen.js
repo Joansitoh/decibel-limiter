@@ -7,6 +7,12 @@
  * Handles tab-level audio capture and processing for enhanced mode.
  * Uses Chrome's tabCapture API to process audio from streaming services.
  */
+const LIMITER_PRESETS = Object.freeze({
+  soft: { floor: 0.05, release: 1.06 },
+  normal: { floor: 0.01, release: 1.03 },
+  strong: { floor: 0.003, release: 1.015 }
+});
+
 class OffscreenAudioProcessor {
   constructor() {
     /** @type {AudioContext|null} - Web Audio API context */
@@ -28,7 +34,7 @@ class OffscreenAudioProcessor {
     this.isProcessing = false;
     
     /** @type {{enabled: boolean, limitDB: number}} - Limiter configuration */
-    this.config = { enabled: false, limitDB: -20 };
+    this.config = { enabled: false, limitDB: -20, limiterStrength: 'normal' };
     
     /** @type {number|null} - Current tab ID being processed */
     this.tabId = null;
@@ -57,7 +63,9 @@ class OffscreenAudioProcessor {
             sendResponse({ success: true });
             break;
           case 'stop-capture':
-            this.stopCapture();
+            if (message.tabId == null || message.tabId === this.tabId) {
+              this.stopCapture();
+            }
             sendResponse({ success: true });
             break;
           case 'update-config':
@@ -88,17 +96,15 @@ class OffscreenAudioProcessor {
    */
   async startCapture(streamId, tabId) {
     try {
+      if (this.isProcessing || this.mediaStream || this.audioContext) {
+        this.stopCapture();
+      }
+
       this.tabId = tabId;
 
       // Obtain media stream using Chrome's tabCapture API
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          mandatory: {
-            chromeMediaSource: "tab",
-            chromeMediaSourceId: streamId,
-          },
-        },
-        video: {
           mandatory: {
             chromeMediaSource: "tab",
             chromeMediaSourceId: streamId,
@@ -116,10 +122,10 @@ class OffscreenAudioProcessor {
       this.analyser.fftSize = 2048;
       this.analyser.smoothingTimeConstant = 0; // No smoothing for accurate RMS
 
-      // Connect audio graph: source -> analyser -> gain -> destination
-      this.sourceNode.connect(this.analyser);
-      this.analyser.connect(this.gainNode);
-      this.gainNode.connect(this.audioContext.destination);
+      // Connect audio graph: source → gain → analyser → destination (post-gain metering)
+      this.sourceNode.connect(this.gainNode);
+      this.gainNode.connect(this.analyser);
+      this.analyser.connect(this.audioContext.destination);
 
       // Start processing
       this.isProcessing = true;
@@ -128,6 +134,7 @@ class OffscreenAudioProcessor {
       // Tab audio capture started successfully
     } catch (error) {
       console.error('Failed to start tab capture:', error);
+      this.stopCapture();
       throw error;
     }
   }
@@ -207,18 +214,19 @@ class OffscreenAudioProcessor {
       
       if (this.config.enabled && isFinite(db)) {
         const limitRms = Math.pow(10, this.config.limitDB / 20);
+        const floor = Number.isFinite(this.config.limiterFloor) ? this.config.limiterFloor : (LIMITER_PRESETS[this.config.limiterStrength]?.floor ?? 0.01);
+        const release = Number.isFinite(this.config.limiterRelease) ? this.config.limiterRelease : (LIMITER_PRESETS[this.config.limiterStrength]?.release ?? 1.03);
         
         if (rms > limitRms) {
           // ATTACK: Audio exceeds limit - reduce gain immediately (fast attack)
-          targetGain = Math.max(0.01, limitRms / rms);
+          targetGain = Math.max(floor, limitRms / rms);
           // Apply immediately for instant limiting
           this.currentGain = targetGain;
         } else {
           // RELEASE: Audio under limit - restore gain gradually
           // Release time: ~100ms for perceptible but smooth recovery
           // At 30 FPS (33ms per frame), increment by ~3% per frame
-          const releaseIncrement = 1.03;
-          targetGain = Math.min(1.0, this.currentGain * releaseIncrement);
+          targetGain = Math.min(1.0, this.currentGain * release);
           this.currentGain = targetGain;
         }
       } else {

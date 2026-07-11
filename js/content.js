@@ -14,6 +14,12 @@ const State = Object.freeze({
   FAILED: 3
 });
 
+const LIMITER_PRESETS = Object.freeze({
+  soft: { floor: 0.05, release: 1.06 },
+  normal: { floor: 0.01, release: 1.03 },
+  strong: { floor: 0.003, release: 1.015 }
+});
+
 /**
  * Safely executes a function and logs any errors without throwing.
  * @param {Function} fn - Function to execute safely
@@ -58,7 +64,7 @@ class Limiter {
   #globalGain = 1;
   
   /** @type {{enabled: boolean, limitDB: number}} - Limiter configuration */
-  #config = { enabled: false, limitDB: -20 };
+  #config = { enabled: false, limitDB: -20, limiterStrength: 'normal' };
   
   /** @type {MutationObserver|null} - DOM mutation observer */
   #observer = null;
@@ -97,9 +103,12 @@ class Limiter {
    * @param {boolean} [config.enabled] - Whether limiting is enabled
    * @param {number} [config.limitDB] - Decibel limit threshold
    */
-  updateConfig({ enabled, limitDB }) {
+  updateConfig({ enabled, limitDB, limiterStrength, limiterFloor, limiterRelease }) {
     if (typeof enabled === 'boolean') this.#config.enabled = enabled;
     if (typeof limitDB === 'number') this.#config.limitDB = limitDB;
+    if (limiterStrength in LIMITER_PRESETS || limiterStrength === 'custom') this.#config.limiterStrength = limiterStrength;
+    if (Number.isFinite(limiterFloor)) this.#config.limiterFloor = limiterFloor;
+    if (Number.isFinite(limiterRelease)) this.#config.limiterRelease = limiterRelease;
   }
 
   /**
@@ -167,6 +176,11 @@ class Limiter {
     }
   }
 
+  #connectElementOnPlayback = event => {
+    this.#connectElement(event.target);
+    this.#resumeContextOnGesture();
+  };
+
   /**
    * Recursively scans DOM for audio/video elements and connects them.
    * Includes shadow DOM traversal.
@@ -179,11 +193,19 @@ class Limiter {
       acceptNode: node => (node.nodeName === 'AUDIO' || node.nodeName === 'VIDEO') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP
     });
     while (walker.nextNode()) {
-      this.#connectElement(/** @type {HTMLMediaElement} */(walker.currentNode));
+      const el = /** @type {HTMLMediaElement} */(walker.currentNode);
+      this.#watchElement(el);
+      this.#connectElement(el);
     }
     // Recursively scan shadow DOM
     if (root.shadowRoot) safe(() => this.#scanDom(root.shadowRoot));
     [...root.children].forEach(child => safe(() => this.#scanDom(child)));
+  }
+
+  #watchElement(el) {
+    if (!el || this.#processed.has(el)) return;
+    el.addEventListener('play', this.#connectElementOnPlayback, { once: true, capture: true });
+    el.addEventListener('playing', this.#connectElementOnPlayback, { once: true, capture: true });
   }
 
   /**
@@ -229,16 +251,17 @@ class Limiter {
     // Calculate target gain based on configuration with attack/release
     if (this.#config.enabled) {
       const limitRms = Math.pow(10, this.#config.limitDB / 20);
+      const floor = Number.isFinite(this.#config.limiterFloor) ? this.#config.limiterFloor : (LIMITER_PRESETS[this.#config.limiterStrength]?.floor ?? 0.01);
+      const release = Number.isFinite(this.#config.limiterRelease) ? this.#config.limiterRelease : (LIMITER_PRESETS[this.#config.limiterStrength]?.release ?? 1.03);
       
       if (rms > limitRms) {
         // ATTACK: Audio exceeds limit - reduce gain immediately (fast attack)
-        this.#globalGain = Math.max(0.01, limitRms / rms);
+        this.#globalGain = Math.max(floor, limitRms / rms);
       } else {
         // RELEASE: Audio under limit - restore gain gradually
         // Release time: ~100ms for perceptible but smooth recovery
         // At 30 FPS (33ms per frame), increment by ~3% per frame
-        const releaseIncrement = 1.03;
-        this.#globalGain = Math.min(1.0, this.#globalGain * releaseIncrement);
+        this.#globalGain = Math.min(1.0, this.#globalGain * release);
       }
     } else {
       this.#globalGain = 1;

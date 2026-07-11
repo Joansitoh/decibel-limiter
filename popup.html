@@ -63,7 +63,7 @@
       </button>
 
       <button id="infoButton" class="btn info-btn" data-i18n-title="infoButtonTitle">
-        <span class="material-icons">info</span>
+        <span class="material-icons">settings</span>
       </button>
     </div>
 
@@ -75,6 +75,61 @@
         </div>
         <p data-i18n="enhancedModeDesc">Improves detection and processing by capturing the tab's audio directly. Provides more accurate measurements and a more reliable limiter, but may request additional permissions.</p>
         <p class="muted" data-i18n="enhancedModeMuted">Use when you need maximum accuracy on complex audio tabs.</p>
+      </div>
+    </div>
+
+    <div id="settingsView" class="settings-view">
+      <div class="settings-header">
+        <button id="closeSettings" class="btn icon-btn" data-i18n-aria="closeLabel">
+          <span class="material-icons">arrow_back</span>
+        </button>
+        <span data-i18n="settingsTitle">Settings</span>
+      </div>
+
+      <div class="card slider-card">
+        <div class="section-header">
+          <span data-i18n="presetSelect">Preset</span>
+        </div>
+        <div class="preset-selector" id="presetSelector">
+          <button type="button" data-preset="soft" data-i18n="strengthSoft">Soft</button>
+          <button type="button" data-preset="normal" data-i18n="strengthNormal">Normal</button>
+          <button type="button" data-preset="strong" data-i18n="strengthStrong">Strong</button>
+          <button type="button" data-preset="custom" data-i18n="strengthCustom">Custom</button>
+        </div>
+      </div>
+
+      <div class="card slider-card">
+        <div class="section-header">
+          <span class="label-group">
+            <span data-i18n="floorLabel">Attack floor</span>
+            <span class="info-icon">
+              <span class="material-icons">info</span>
+              <span class="tooltip" data-i18n="floorTooltip">Minimum gain during a peak. Lower = more aggressive limiting.</span>
+            </span>
+          </span>
+          <span id="floorValue" class="value">0.01</span>
+        </div>
+        <input type="range" id="floorSlider" min="1" max="100" step="1" value="10" />
+        <div class="scale-markers">
+          <span>0.001</span><span>0.05</span><span>0.1</span>
+        </div>
+      </div>
+
+      <div class="card slider-card">
+        <div class="section-header">
+          <span class="label-group">
+            <span data-i18n="releaseLabel">Release speed</span>
+            <span class="info-icon">
+              <span class="material-icons">info</span>
+              <span class="tooltip" data-i18n="releaseTooltip">How fast volume recovers after a peak. Lower = slower recovery.</span>
+            </span>
+          </span>
+          <span id="releaseValue" class="value">1.03</span>
+        </div>
+        <input type="range" id="releaseSlider" min="1001" max="1200" step="1" value="1030" />
+        <div class="scale-markers">
+          <span>1.0</span><span>1.1</span><span>1.2</span>
+        </div>
       </div>
     </div>
 

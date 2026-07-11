@@ -59,6 +59,50 @@
     "message": "Cerrar",
     "description": "Etiqueta para el botón cerrar en el panel de información"
   },
+  "limiterStrength": {
+    "message": "Fuerza del limitador",
+    "description": "Etiqueta para el selector de fuerza del limitador"
+  },
+  "settingsTitle": {
+    "message": "Ajustes",
+    "description": "Título del panel de ajustes"
+  },
+  "presetSelect": {
+    "message": "Preset",
+    "description": "Etiqueta para el selector de preset"
+  },
+  "floorLabel": {
+    "message": "Suelo de ataque",
+    "description": "Etiqueta para el slider de suelo de ataque"
+  },
+  "releaseLabel": {
+    "message": "Velocidad de recuperación",
+    "description": "Etiqueta para el slider de velocidad de recuperación"
+  },
+  "floorTooltip": {
+    "message": "Ganancia mínima durante un pico. Más bajo = limitación más agresiva.",
+    "description": "Tooltip explicando el suelo de ataque"
+  },
+  "releaseTooltip": {
+    "message": "Qué rápido recupera el volumen tras un pico. Más bajo = recuperación más lenta.",
+    "description": "Tooltip explicando la velocidad de recuperación"
+  },
+  "strengthCustom": {
+    "message": "Personalizado",
+    "description": "Opción de fuerza personalizada del limitador"
+  },
+  "strengthSoft": {
+    "message": "Suave",
+    "description": "Opción de fuerza suave del limitador"
+  },
+  "strengthNormal": {
+    "message": "Normal",
+    "description": "Opción de fuerza normal del limitador"
+  },
+  "strengthStrong": {
+    "message": "Fuerte",
+    "description": "Opción de fuerza fuerte del limitador"
+  },
   "footer": {
     "message": "Controla el volumen de tus pestañas de navegación",
     "description": "Texto del pie de página"

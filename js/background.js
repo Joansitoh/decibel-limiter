@@ -12,19 +12,72 @@ const historyDB = new Map();
 /** @type {Map<number, number>} - Maps tab ID to peak decibel level */
 const peakDB = new Map();
 
-/** @type {Map<number, {streamId: string, offscreenCreated: boolean}>} - Tracks active tab captures */
+/** @type {Map<number, {streamId: string}>} - Tracks active tab captures */
 const activeCaptures = new Map();
 
+/** @type {Set<number>} - Tabs currently starting a capture (prevents duplicate concurrent starts) */
+const captureStarting = new Set();
+
 /**
- * Utility object to promisify Chrome API calls.
- * @namespace
+ * Per-tab config stored in chrome.storage.session.
+ * Persists across service worker restarts (SW is killed after ~5 s of inactivity in MV3)
+ * but is cleared when the browser is closed — session-only, never written to disk.
+ * Cleared individually when a tab is closed.
  */
+const DEFAULT_CONFIG = Object.freeze({ enabled: false, limitDB: -20, captureEnabled: false, limiterStrength: 'normal', limiterFloor: 0.01, limiterRelease: 1.03 });
+const LIMITER_STRENGTHS = new Set(['soft', 'normal', 'strong', 'custom']);
+const LIMITER_PRESETS = Object.freeze({
+  soft: { floor: 0.05, release: 1.06 },
+  normal: { floor: 0.01, release: 1.03 },
+  strong: { floor: 0.003, release: 1.015 }
+});
+
+function tabConfigKey(tabId) { return `tab_cfg_${tabId}`; }
+
+async function getTabConfig(tabId) {
+  const key = tabConfigKey(tabId);
+  const data = await chrome.storage.session.get(key);
+  return data[key] ?? { ...DEFAULT_CONFIG };
+}
+
+async function setTabConfig(tabId, cfg) {
+  await chrome.storage.session.set({ [tabConfigKey(tabId)]: cfg });
+}
+
+async function removeTabConfig(tabId) {
+  await chrome.storage.session.remove(tabConfigKey(tabId));
+}
+
 const chromeAsync = {
-  getStorage: (keys) => new Promise(resolve => chrome.storage.local.get(keys, resolve)),
-  setStorage: (items) => new Promise(resolve => chrome.storage.local.set(items, resolve)),
-  queryTabs: (query) => new Promise(resolve => chrome.tabs.query(query, resolve)),
   sendMessageTab: (tabId, msg) => new Promise(resolve => chrome.tabs.sendMessage(tabId, msg, resolve)),
 };
+
+/**
+ * Applies the current in-memory config to a tab's content script and manages capture state.
+ * @param {number} tabId
+ */
+async function applyConfigToTab(tabId) {
+  const cfg = await getTabConfig(tabId);
+
+  try {
+    await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', ...cfg });
+  } catch (e) {
+    // Ignore if no content script
+  }
+
+  if (cfg.captureEnabled && !activeCaptures.has(tabId) && !captureStarting.has(tabId)) {
+    try { await startTabCapture(tabId); } catch (e) { /* ignore */ }
+  }
+
+  if (cfg.enabled) {
+    chrome.action.setBadgeText({ tabId, text: 'ON' });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: '#2ecc71' });
+    chrome.action.setTitle({ tabId, title: 'Decibel Limiter — Enabled' });
+  } else {
+    chrome.action.setBadgeText({ tabId, text: '' });
+    chrome.action.setTitle({ tabId, title: 'Decibel Limiter' });
+  }
+}
 
 /**
  * Calculates exponentially weighted moving average (EMA) of decibel values.
@@ -58,8 +111,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const tabId = sender.tab?.id || msg.tabId;
       switch (msg.type) {
         case 'getConfig': {
-          const data = await chromeAsync.getStorage(tabId.toString());
-          const cfg = data[tabId] || { enabled: false, limitDB: -20 };
+          const cfg = await getTabConfig(tabId ?? -1);
           sendResponse({ tabId, ...cfg });
           break;
         }
@@ -103,36 +155,35 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           break;
         }
         case 'setConfig': {
-          // Called by popup to update per-tab config (enabled, limitDB, captureEnabled)
           try {
             const enabled = !!msg.enabled;
             const limitDB = Number.isFinite(msg.limitDB) ? msg.limitDB : -20;
             const captureEnabled = !!msg.captureEnabled;
+            const limiterStrength = LIMITER_STRENGTHS.has(msg.limiterStrength) ? msg.limiterStrength : 'normal';
+            const limiterFloor = Number.isFinite(msg.limiterFloor) ? msg.limiterFloor : (LIMITER_PRESETS[limiterStrength]?.floor ?? 0.01);
+            const limiterRelease = Number.isFinite(msg.limiterRelease) ? msg.limiterRelease : (LIMITER_PRESETS[limiterStrength]?.release ?? 1.03);
 
-            // Persist the config per-tab when tabId is provided
             if (tabId != null) {
-              const tabKey = String(tabId);
+              const previousCfg = await getTabConfig(tabId);
+              const nextConfig = { enabled, limitDB, captureEnabled, limiterStrength, limiterFloor, limiterRelease };
+              await setTabConfig(tabId, nextConfig);
+
               try {
-                await chromeAsync.setStorage({ [tabKey]: { enabled, limitDB, captureEnabled } });
-              } catch (e) {
-                // ignore storage errors
+                await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', enabled, limitDB, captureEnabled, limiterStrength, limiterFloor, limiterRelease });
+              } catch (e) { /* ignore if no content script */ }
+
+              // Only toggle capture when the flag actually changed
+              if (captureEnabled !== !!previousCfg.captureEnabled) {
+                if (captureEnabled) {
+                  try { await startTabCapture(tabId); } catch (e) { /* ignore */ }
+                } else {
+                  try { await stopTabCapture(tabId); } catch (e) { /* ignore */ }
+                }
+              } else if (captureEnabled && activeCaptures.has(tabId)) {
+                // Capture already active — propagate updated config to offscreen
+                try { await chrome.runtime.sendMessage({ type: 'update-config', config: nextConfig }); } catch (e) {}
               }
 
-              // Apply to the tab's content script (if present)
-              try {
-                await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', enabled, limitDB, captureEnabled });
-              } catch (e) {
-                // ignore if no content script
-              }
-
-              // Manage capture state according to config
-              if (captureEnabled) {
-                try { await startTabCapture(tabId); } catch (e) { /* ignore */ }
-              } else {
-                try { await stopTabCapture(tabId); } catch (e) { /* ignore */ }
-              }
-
-              // Set badge for visual feedback on that tab
               if (enabled) {
                 chrome.action.setBadgeText({ tabId, text: 'ON' });
                 chrome.action.setBadgeBackgroundColor({ tabId, color: '#2ecc71' });
@@ -140,17 +191,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
               } else {
                 chrome.action.setBadgeText({ tabId, text: '' });
                 chrome.action.setTitle({ tabId, title: 'Decibel Limiter' });
-              }
-            } else {
-              // No tabId: store globally (not per-tab) and update badge/title globally
-              try { await chromeAsync.setStorage({ globalConfig: { enabled, limitDB, captureEnabled } }); } catch (e) {}
-              if (enabled) {
-                chrome.action.setBadgeText({ text: 'ON' });
-                chrome.action.setBadgeBackgroundColor({ color: '#2ecc71' });
-                chrome.action.setTitle({ title: 'Decibel Limiter — Enabled' });
-              } else {
-                chrome.action.setBadgeText({ text: '' });
-                chrome.action.setTitle({ title: 'Decibel Limiter' });
               }
             }
           } catch (err) {
@@ -176,56 +216,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 /**
- * Propagates configuration changes to content scripts and offscreen document.
- * Ensures all components stay synchronized with user settings.
- */
-chrome.storage.onChanged.addListener(async (changes, area) => {
-  if (area !== 'local') return;
-  for (const [key, { newValue }] of Object.entries(changes)) {
-    const tabId = Number(key);
-    if (Number.isNaN(tabId)) continue;
-
-    // Update content script (handles traditional media elements)
-    await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', ...newValue });
-
-    // Update offscreen document if enhanced mode is active
-    if (activeCaptures.has(tabId)) {
-      try {
-        await chrome.runtime.sendMessage({
-          type: 'update-config',
-          config: newValue
-        });
-      } catch (error) {
-        // Ignore errors if offscreen document doesn't exist
-      }
-    }
-  }
-});
-
-/**
  * Starts tab audio capture for enhanced mode.
- * Creates offscreen document and initiates audio processing.
- * @param {number} tabId - Tab ID to capture audio from
- * @returns {Promise<void>}
- * @throws {Error} If tab capture fails to start
+ * Uses captureStarting as a lock to prevent duplicate concurrent starts.
+ * @param {number} tabId
  */
 async function startTabCapture(tabId) {
+  if (activeCaptures.has(tabId) || captureStarting.has(tabId)) return;
+  captureStarting.add(tabId);
   try {
-    // Prevent duplicate capture sessions
-    if (activeCaptures.has(tabId)) {
-      return;
+    for (const activeTabId of activeCaptures.keys()) {
+      if (activeTabId !== tabId) await stopTabCapture(activeTabId);
     }
 
-    // Obtain stream ID from Chrome's tabCapture API
-    const streamId = await chrome.tabCapture.getMediaStreamId({
-      targetTabId: tabId
-    });
+    const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
 
-    // Create offscreen document if it doesn't exist
     const existingContexts = await chrome.runtime.getContexts({});
-    const offscreenDocument = existingContexts.find(
-      (c) => c.contextType === 'OFFSCREEN_DOCUMENT'
-    );
+    const offscreenDocument = existingContexts.find(c => c.contextType === 'OFFSCREEN_DOCUMENT');
 
     if (!offscreenDocument) {
       await chrome.offscreen.createDocument({
@@ -235,50 +241,31 @@ async function startTabCapture(tabId) {
       });
     }
 
-    // Initialize capture in offscreen document
-    await chrome.runtime.sendMessage({
-      type: 'start-capture',
-      streamId: streamId,
-      tabId: tabId
-    });
+    const config = await getTabConfig(tabId);
+    await chrome.runtime.sendMessage({ type: 'start-capture', streamId, tabId });
+    await chrome.runtime.sendMessage({ type: 'update-config', config });
 
-    // Load and send current configuration to offscreen
-    const data = await chromeAsync.getStorage(tabId.toString());
-    const config = data[tabId] || { enabled: false, limitDB: -20 };
-
-    await chrome.runtime.sendMessage({
-      type: 'update-config',
-      config: config
-    });
-
-    activeCaptures.set(tabId, { streamId, offscreenCreated: !offscreenDocument });
-    // Tab capture started successfully
+    activeCaptures.set(tabId, { streamId });
   } catch (error) {
     console.error('Failed to start tab capture:', error);
     throw error;
+  } finally {
+    captureStarting.delete(tabId);
   }
 }
 
 /**
  * Stops tab audio capture and cleans up resources.
- * @param {number} tabId - Tab ID to stop capturing
- * @returns {Promise<void>}
+ * @param {number} tabId
  */
 async function stopTabCapture(tabId) {
+  if (!activeCaptures.has(tabId)) return;
   try {
-    if (!activeCaptures.has(tabId)) {
-      return;
-    }
-
-    // Send stop signal to offscreen document
-    await chrome.runtime.sendMessage({
-      type: 'stop-capture'
-    });
-
-    activeCaptures.delete(tabId);
-    // Tab capture stopped successfully
+    await chrome.runtime.sendMessage({ type: 'stop-capture', tabId });
   } catch (error) {
     console.error('Failed to stop tab capture:', error);
+  } finally {
+    activeCaptures.delete(tabId);
   }
 }
 
@@ -306,66 +293,27 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   currentDB.delete(tabId);
   historyDB.delete(tabId);
   peakDB.delete(tabId);
+  captureStarting.delete(tabId);
+  await removeTabConfig(tabId);
 
   if (activeCaptures.has(tabId)) {
     await stopTabCapture(tabId);
   }
-
-  chrome.storage.local.remove(tabId.toString());
 });
 
-// When a tab becomes active, apply stored configuration for that tab (re-activate if needed)
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
-    const tabId = activeInfo.tabId;
-    const key = String(tabId);
-    const data = await chromeAsync.getStorage(key);
-    const cfg = data[key] || {};
-
-    // Send config to content script
-    try { await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', ...cfg }); } catch (e) {}
-
-    // If enhanced capture was active previously, try to re-start it
-    if (cfg.captureEnabled) {
-      try { await startTabCapture(tabId); } catch (e) { }
-    }
-
-    // Ensure the action badge reflects enabled state for this tab
-    if (cfg.enabled) {
-      chrome.action.setBadgeText({ tabId, text: 'ON' });
-      chrome.action.setBadgeBackgroundColor({ tabId, color: '#2ecc71' });
-      chrome.action.setTitle({ tabId, title: 'Decibel Limiter — Enabled' });
-    } else {
-      chrome.action.setBadgeText({ tabId, text: '' });
-      chrome.action.setTitle({ tabId, title: 'Decibel Limiter' });
-    }
-  } catch (err) {
-    // ignore
-  }
+    await applyConfigToTab(activeInfo.tabId);
+  } catch (err) { /* ignore */ }
 });
 
-// When a tab finishes loading (navigation), re-apply stored config so new page gets settings
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   try {
+    if (changeInfo.status === 'loading' && activeCaptures.has(tabId)) {
+      await stopTabCapture(tabId);
+      return;
+    }
     if (changeInfo.status !== 'complete') return;
-    const key = String(tabId);
-    const data = await chromeAsync.getStorage(key);
-    const cfg = data[key] || {};
-    try { await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', ...cfg }); } catch (e) {}
-    if (cfg.captureEnabled) {
-      try { await startTabCapture(tabId); } catch (e) { }
-    }
-
-    // Update badge to match stored enabled state
-    if (cfg.enabled) {
-      chrome.action.setBadgeText({ tabId, text: 'ON' });
-      chrome.action.setBadgeBackgroundColor({ tabId, color: '#2ecc71' });
-      chrome.action.setTitle({ tabId, title: 'Decibel Limiter — Enabled' });
-    } else {
-      chrome.action.setBadgeText({ tabId, text: '' });
-      chrome.action.setTitle({ tabId, title: 'Decibel Limiter' });
-    }
-  } catch (err) {
-    // ignore
-  }
+    await applyConfigToTab(tabId);
+  } catch (err) { /* ignore */ }
 });

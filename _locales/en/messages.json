@@ -59,6 +59,50 @@
     "message": "Close",
     "description": "Label for close button on info panel"
   },
+  "limiterStrength": {
+    "message": "Limiter strength",
+    "description": "Label for limiter strength selector"
+  },
+  "settingsTitle": {
+    "message": "Settings",
+    "description": "Title for settings panel"
+  },
+  "presetSelect": {
+    "message": "Preset",
+    "description": "Label for preset selector"
+  },
+  "floorLabel": {
+    "message": "Attack floor",
+    "description": "Label for attack floor slider"
+  },
+  "releaseLabel": {
+    "message": "Release speed",
+    "description": "Label for release speed slider"
+  },
+  "floorTooltip": {
+    "message": "Minimum gain during a peak. Lower = more aggressive limiting.",
+    "description": "Tooltip explaining attack floor"
+  },
+  "releaseTooltip": {
+    "message": "How fast volume recovers after a peak. Lower = slower recovery.",
+    "description": "Tooltip explaining release speed"
+  },
+  "strengthCustom": {
+    "message": "Custom",
+    "description": "Custom limiter strength option"
+  },
+  "strengthSoft": {
+    "message": "Soft",
+    "description": "Soft limiter strength option"
+  },
+  "strengthNormal": {
+    "message": "Normal",
+    "description": "Normal limiter strength option"
+  },
+  "strengthStrong": {
+    "message": "Strong",
+    "description": "Strong limiter strength option"
+  },
   "footer": {
     "message": "Control the volume of your navigation tabs",
     "description": "Footer text"
