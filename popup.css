@@ -733,8 +733,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
    and clips against the popup edges, so a safe centered layout wins here. */
 .enhanced-popover {
   width: 240px;
-  max-height: min(320px, 80vh);
-  overflow-y: auto;
   margin: auto;
   background: var(--bg-card-raised);
   border: 1px solid var(--border);
