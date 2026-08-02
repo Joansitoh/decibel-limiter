@@ -57,17 +57,28 @@
     </div>
 
     <div class="button-row">
-      <button id="mainToggle" class="btn main-btn combined" data-i18n-title="mainToggleTitle">
-        <span class="material-icons">power_settings_new</span>
-        <span id="toggleText" data-i18n="enable">Enable</span>
-        <span id="micToggle" class="mic-toggle" role="button" aria-pressed="false" data-i18n-title="micTitle">
-          <span class="material-icons">mic</span>
-        </span>
-      </button>
+      <div class="main-btn-wrap">
+        <button id="mainToggle" class="btn main-btn combined" data-i18n-title="mainToggleTitle">
+          <span class="material-icons">power_settings_new</span>
+          <span id="toggleText" data-i18n="enable">Enable</span>
+          <span id="micToggle" class="mic-toggle" role="button" aria-pressed="false" data-i18n-title="micTitle">
+            <span class="material-icons">mic</span>
+          </span>
+        </button>
+
+        <button type="button" popovertarget="enhancedModePopover" class="mic-help-btn" id="micHelpBtn" data-i18n-title="infoButtonTitle">
+          <span class="material-icons">info</span>
+        </button>
+      </div>
 
       <button id="infoButton" class="btn info-btn" data-i18n-title="infoButtonTitle">
         <span class="material-icons">settings</span>
       </button>
+    </div>
+
+    <div id="enhancedModePopover" popover class="enhanced-popover">
+      <strong data-i18n="enhancedModeTitle">Enhanced Mode</strong>
+      <p data-i18n="enhancedModeDesc">Improves detection and processing by capturing the tab's audio directly. Provides more accurate measurements and a more reliable limiter, but may request additional permissions.</p>
     </div>
 
     <div id="enhancedInfo" class="enhanced-info" hidden>

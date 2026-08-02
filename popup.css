@@ -298,6 +298,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
   height: 44px;
 }
 
+.main-btn-wrap {
+  position: relative;
+  flex: 1;
+  height: 100%;
+}
+
 .btn {
   display: flex;
   align-items: center;
@@ -309,7 +315,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .main-btn {
-  flex: 1;
+  width: 100%;
+  height: 100%;
   font-weight: 500;
   display: flex;
   gap: 8px;
@@ -336,6 +343,34 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: var(--primary-light);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+}
+
+/* Small badge, top-right of the mic toggle, opens a native popover explaining Enhanced Mode */
+.mic-help-btn {
+  position: absolute;
+  right: 4px;
+  top: 1px;
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bg-card);
+  border-radius: 50%;
+  background: var(--track-dark);
+  color: var(--text-dim);
+  cursor: pointer;
+  z-index: 1;
+}
+
+.mic-help-btn .material-icons {
+  font-size: 10px;
+}
+
+.mic-help-btn:hover {
+  background: var(--primary);
+  color: #fff;
 }
 
 .mic-toggle:active {
@@ -689,4 +724,68 @@ input[type="range"]::-webkit-slider-thumb:hover {
 @keyframes coachmark-pop {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Native popover for the Enhanced Mode explainer, opened by .mic-help-btn.
+   Rendered in the browser's top-layer, so it can never affect popup sizing.
+   Centered with a max-height + scroll instead of anchoring to the button:
+   anchor-positioning inside a ~330px extension popup has no room to flip
+   and clips against the popup edges, so a safe centered layout wins here. */
+.enhanced-popover {
+  width: 240px;
+  max-height: min(320px, 80vh);
+  overflow-y: auto;
+  margin: auto;
+  background: var(--bg-card-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  color: var(--text);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+
+  /* Entry/exit animation via @starting-style (Chrome/Edge) */
+  opacity: 0;
+  transform: scale(0.92) translateY(-6px);
+  transition: opacity 0.16s ease, transform 0.16s ease, overlay 0.16s allow-discrete, display 0.16s allow-discrete;
+}
+
+.enhanced-popover:popover-open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+@starting-style {
+  .enhanced-popover:popover-open {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+  }
+}
+
+/* Chat-bubble arrow pointing down at the info badge, which sits below the popover */
+.enhanced-popover::before {
+  content: "";
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: var(--bg-card-raised);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0 0 2px 0;
+  rotate: 45deg;
+}
+
+.enhanced-popover strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.enhanced-popover p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
 }
