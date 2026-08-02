@@ -118,6 +118,12 @@ body {
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
 }
 
+@media (prefers-color-scheme: light) {
+  .header-icon {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+}
+
 /* Small hardware-style status LED, glows accent-green once the limiter is enabled */
 .led {
   position: absolute;
@@ -166,6 +172,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+@media (prefers-color-scheme: light) {
+  .card {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  }
 }
 
 .section-header {
@@ -286,6 +298,12 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: -6px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transition: 0.2s;
+}
+
+@media (prefers-color-scheme: light) {
+  input[type="range"]::-webkit-slider-thumb {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  }
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
