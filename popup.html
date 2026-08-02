@@ -13,8 +13,9 @@
   <div class="container">
     <header class="header">
       <div class="header-left">
-        <a href="https://github.com/Joansitoh" target="_blank" class="brand-link" title="GitHub">
+        <a href="https://github.com/Joansitoh" target="_blank" class="brand-link header-icon-wrap" title="GitHub">
           <img src="icons/icon128.png" class="header-icon" alt="Icon" />
+          <span class="led"></span>
         </a>
         <div class="header-text">
           <h1 data-i18n="extensionName">Decibel Limiter</h1>
@@ -38,6 +39,8 @@
       <div class="scale-markers">
         <span>-60</span><span>-30</span><span>0 dBFS</span>
       </div>
+
+      <div class="gain-readout" id="gainReadout" hidden>Gain: +0.0 dB</div>
     </div>
 
     <div class="card slider-card">
@@ -124,12 +127,36 @@
               <span class="tooltip" data-i18n="releaseTooltip">How fast volume recovers after a peak. Lower = slower recovery.</span>
             </span>
           </span>
-          <span id="releaseValue" class="value">1.03</span>
+          <span id="releaseValue" class="value">8 dB/s</span>
         </div>
-        <input type="range" id="releaseSlider" min="1001" max="1200" step="1" value="1030" />
+        <input type="range" id="releaseSlider" min="1" max="30" step="1" value="8" />
         <div class="scale-markers">
-          <span>1.0</span><span>1.1</span><span>1.2</span>
+          <span>1 dB/s</span><span>15 dB/s</span><span>30 dB/s</span>
         </div>
+      </div>
+
+      <div class="card toggle-card">
+        <div class="section-header">
+          <span class="label-group">
+            <span data-i18n="applyAllSitesLabel">Apply to all sites</span>
+            <span class="info-icon">
+              <span class="material-icons">info</span>
+              <span class="tooltip" data-i18n="applyAllSitesTooltip">Keeps this exact limiter setting active on every site/tab you open (saved persistently), instead of per-tab only.</span>
+            </span>
+          </span>
+          <button type="button" id="globalToggle" class="switch" role="switch" aria-checked="false">
+            <span class="switch-knob"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="coachmark" class="coachmark" hidden>
+      <div class="coachmark-tooltip">
+        <span class="coachmark-intro-icon material-icons">auto_awesome</span>
+        <span id="coachmarkStep" class="coachmark-step">1/2</span>
+        <p id="coachmarkText" class="coachmark-text"></p>
+        <button id="coachmarkNext" class="btn coachmark-next"></button>
       </div>
     </div>
 

@@ -29,15 +29,15 @@ Perfect for night browsing, shared workspaces, or anyone who values their hearin
 ## ✨ Key Features
 
 ### 🎯 Core Functionality
-- **🔄 Real-time Volume Limiting** - Instantly limits volume when audio exceeds your set threshold
-- **📊 Live Audio Monitoring** - Visual feedback showing current audio levels in decibels (dBFS)
+- **🔄 Real Lookahead Limiting** - Buffers a few milliseconds of audio so gain is already ducked *before* a loud transient reaches your speakers, instead of reacting after the fact
+- **📊 Live Audio Monitoring** - Visual feedback showing current audio level and the live applied gain reduction (dB)
 - **🎚️ Customizable Threshold** - Fine-tune your limit anywhere between 0 and -60 dBFS
-- **🔖 Per-Tab Control** - Configure each tab independently for maximum flexibility
+- **🌐 Apply to All Sites** - Optionally persist your setting so it stays active on every site/tab you open, instead of per-tab only
+- **🔖 Per-Tab Control** - Or configure each tab independently for maximum flexibility
 
 ### 🎨 User Experience
-- **📈 Intuitive Interface** - Clean, modern design with real-time volume meter visualization
-- **🌙 Dark Mode Support** - Seamlessly adapts to your system theme preferences
-- **⚡ Lightweight & Fast** - Minimal impact on browser performance
+- **📈 Intuitive Interface** - Studio-style dark UI with real-time volume meter visualization
+- **⚡ Lightweight & Fast** - Audio-thread processing (AudioWorklet) for minimal impact on browser performance
 - **🔒 Privacy-Focused** - All processing happens locally, no data collection
 
 ### 🌐 Compatibility
@@ -71,14 +71,16 @@ Decibel Limiter leverages the **Web Audio API** to provide intelligent, real-tim
        └─> Converts to dBFS (decibels relative to full scale)
            └─> Compares against user-defined threshold
 
-3. 🎚️ Limiting Phase
-   └─> Exceeds threshold? Reduce gain automatically
-       └─> Below threshold? Gradually restore original volume
-           └─> Maintains natural listening experience
+3. 🎚️ Lookahead Limiting Phase
+   └─> Buffers a few ms of audio; if an upcoming block exceeds the ceiling, gain drops immediately — before it's heard
+       └─> Below the ceiling? Gain restores gradually (release speed set by preset)
+           └─> A safety compressor after the computed gain guards against any remaining clipping
+               └─> Maintains natural listening experience, without ever sounding louder than your limit
 
 4. 💾 Persistence
-   └─> Settings saved per-tab in local storage
-       └─> Configurations persist across browser sessions
+   └─> Settings saved per-tab by default (cleared when the tab closes)
+       └─> Or turn on "Apply to all sites" to save one setting globally and push it to every tab/domain
+           └─> Global settings persist across browser restarts
 ```
 
 ### Technical Architecture
@@ -192,8 +194,8 @@ We take your privacy seriously:
 ### Tech Stack
 
 - **Core**: Vanilla JavaScript (ES6+)
-- **APIs**: Web Audio API, browser extensions APIs (Chromium-compatible)
-- **UI**: HTML5, CSS3 (with dark mode support)
+- **APIs**: Web Audio API (AudioWorklet, DynamicsCompressorNode), browser extensions APIs (Chromium-compatible)
+- **UI**: HTML5, CSS3 (studio-style dark theme)
 - **Storage**: browser storage APIs (Chromium-compatible)
 
 ### Project Structure

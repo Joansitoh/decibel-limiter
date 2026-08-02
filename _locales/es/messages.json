@@ -106,5 +106,41 @@
   "footer": {
     "message": "Controla el volumen de tus pestañas de navegación",
     "description": "Texto del pie de página"
+  },
+  "gainLabel": {
+    "message": "Ganancia",
+    "description": "Etiqueta para la lectura en vivo de la ganancia aplicada"
+  },
+  "applyAllSitesLabel": {
+    "message": "Aplicar a todas las webs",
+    "description": "Etiqueta para el interruptor de persistencia global (todas las webs)"
+  },
+  "applyAllSitesTooltip": {
+    "message": "Mantiene este mismo ajuste del limitador activo en cualquier web/pestaña que abras (se guarda de forma persistente), en vez de solo en esta pestaña.",
+    "description": "Tooltip explicando el interruptor de persistencia global"
+  },
+  "coachmarkIntro": {
+    "message": "Nueva versión disponible",
+    "description": "Texto de la pantalla de introducción del tour de novedades"
+  },
+  "coachmarkStart": {
+    "message": "Ver qué hay nuevo",
+    "description": "Botón para empezar el tour de novedades desde la intro"
+  },
+  "coachmarkPresets": {
+    "message": "Nuevo: elige la fuerza del limitador con un preset.",
+    "description": "Paso 1 del tour de novedades, señala el selector de presets"
+  },
+  "coachmarkGlobalToggle": {
+    "message": "Nuevo: activa esto para aplicar el mismo ajuste en todas las webs.",
+    "description": "Paso 2 del tour de novedades, señala el interruptor global"
+  },
+  "coachmarkNext": {
+    "message": "Siguiente",
+    "description": "Botón para pasar al siguiente paso del tour"
+  },
+  "coachmarkDone": {
+    "message": "Entendido",
+    "description": "Botón para cerrar el tour en el último paso"
   }
 }

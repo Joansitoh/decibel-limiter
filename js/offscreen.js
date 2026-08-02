@@ -6,47 +6,40 @@
 /**
  * Handles tab-level audio capture and processing for enhanced mode.
  * Uses Chrome's tabCapture API to process audio from streaming services.
+ *
+ * The actual limiting (lookahead peak detection + gain) happens inside an
+ * AudioWorklet (js/limiter-processor.js), sitting directly in the audio graph
+ * on the audio rendering thread — not a main-thread setInterval loop feeding
+ * a separate GainNode. A native DynamicsCompressorNode acts as a safety net
+ * in case a fast transient still sneaks through.
  */
-const LIMITER_PRESETS = Object.freeze({
-  soft: { floor: 0.05, release: 1.06 },
-  normal: { floor: 0.01, release: 1.03 },
-  strong: { floor: 0.003, release: 1.015 }
-});
+const SAFETY_COMPRESSOR = Object.freeze({ threshold: -3, knee: 0, ratio: 20, attack: 0.003, release: 0.25 });
 
 class OffscreenAudioProcessor {
   constructor() {
     /** @type {AudioContext|null} - Web Audio API context */
     this.audioContext = null;
-    
+
     /** @type {MediaStream|null} - Captured media stream from tab */
     this.mediaStream = null;
-    
-    /** @type {AnalyserNode|null} - Audio analyser for RMS calculation */
-    this.analyser = null;
-    
-    /** @type {GainNode|null} - Gain node for volume limiting */
-    this.gainNode = null;
-    
+
+    /** @type {AudioWorkletNode|null} - Lookahead limiter node */
+    this.limiterNode = null;
+
+    /** @type {DynamicsCompressorNode|null} - Safety net after the limiter */
+    this.safetyCompressor = null;
+
     /** @type {MediaStreamAudioSourceNode|null} - Audio source node */
     this.sourceNode = null;
-    
+
     /** @type {boolean} - Processing state flag */
     this.isProcessing = false;
-    
-    /** @type {{enabled: boolean, limitDB: number}} - Limiter configuration */
+
+    /** @type {Object} - Limiter configuration */
     this.config = { enabled: false, limitDB: -20, limiterStrength: 'normal' };
-    
+
     /** @type {number|null} - Current tab ID being processed */
     this.tabId = null;
-
-    /** @type {number|null} - Interval ID for audio processing loop */
-    this.processingInterval = null;
-    
-    /** @type {number} - Timestamp of last decibel update sent */
-    this.lastSendTime = 0;
-
-    /** @type {number} - Current gain reduction value for smooth transitions */
-    this.currentGain = 1.0;
 
     this.setupMessageListener();
   }
@@ -115,21 +108,20 @@ class OffscreenAudioProcessor {
       // Initialize Web Audio API context and processing nodes
       this.audioContext = new AudioContext();
       this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
-      this.analyser = this.audioContext.createAnalyser();
-      this.gainNode = this.audioContext.createGain();
+      this.safetyCompressor = this.audioContext.createDynamicsCompressor();
+      Object.entries(SAFETY_COMPRESSOR).forEach(([k, v]) => { this.safetyCompressor[k].value = v; });
 
-      // Configure analyser for accurate peak detection
-      this.analyser.fftSize = 2048;
-      this.analyser.smoothingTimeConstant = 0; // No smoothing for accurate RMS
+      await this.audioContext.audioWorklet.addModule(chrome.runtime.getURL('js/limiter-processor.js'));
+      this.limiterNode = new AudioWorkletNode(this.audioContext, 'limiter-processor');
+      this.limiterNode.port.onmessage = event => this.#handleMeter(event.data);
 
-      // Connect audio graph: source → gain → analyser → destination (post-gain metering)
-      this.sourceNode.connect(this.gainNode);
-      this.gainNode.connect(this.analyser);
-      this.analyser.connect(this.audioContext.destination);
+      // source → lookahead limiter (in-place) → safety compressor → destination
+      this.sourceNode.connect(this.limiterNode);
+      this.limiterNode.connect(this.safetyCompressor);
+      this.safetyCompressor.connect(this.audioContext.destination);
 
-      // Start processing
       this.isProcessing = true;
-      this.startProcessingLoop();
+      this.#postConfig();
 
       // Tab audio capture started successfully
     } catch (error) {
@@ -145,11 +137,6 @@ class OffscreenAudioProcessor {
   stopCapture() {
     this.isProcessing = false;
 
-    if (this.processingInterval) {
-      clearInterval(this.processingInterval);
-      this.processingInterval = null;
-    }
-
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
       this.mediaStream = null;
@@ -161,10 +148,9 @@ class OffscreenAudioProcessor {
     }
 
     this.sourceNode = null;
-    this.analyser = null;
-    this.gainNode = null;
+    this.limiterNode = null;
+    this.safetyCompressor = null;
     this.tabId = null;
-    this.currentGain = 1.0;
     // Tab audio capture stopped
   }
 
@@ -174,91 +160,40 @@ class OffscreenAudioProcessor {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
+    this.#postConfig();
   }
 
   /**
-   * Starts the audio processing loop at approximately 30 FPS.
+   * Sends the current configuration to the limiter node, once it's ready.
+   * @private
    */
-  startProcessingLoop() {
-    // Process audio at ~30 FPS for smooth limiting
-    this.processingInterval = setInterval(() => {
-      if (!this.isProcessing || !this.analyser || !this.gainNode) return;
-
-      this.processAudio();
-    }, 33); // ~30 FPS
+  #postConfig() {
+    if (!this.limiterNode) return;
+    this.limiterNode.port.postMessage({ type: 'config', config: this.config });
   }
 
   /**
-   * Processes audio data: calculates RMS, applies gain limiting, and sends updates.
-   * Uses professional attack/release times for smooth, perceptible limiting.
+   * Forwards the decibel/gain reading reported by the limiter node to the background script.
+   * The worklet already throttles its own reports (~40Hz); forwarding each one
+   * keeps the popup's meter smooth.
+   * @private
+   * @param {{db: number, gain: number}} analysis
    */
-  processAudio() {
-    try {
-      // Extract time-domain audio data from analyser
-      const bufferLength = this.analyser.fftSize;
-      const dataArray = new Float32Array(bufferLength);
-      this.analyser.getFloatTimeDomainData(dataArray);
-
-      // Calculate RMS (Root Mean Square) for volume level
-      let sumSquares = 0;
-      for (let i = 0; i < bufferLength; i++) {
-        sumSquares += dataArray[i] * dataArray[i];
-      }
-      const rms = Math.sqrt(sumSquares / bufferLength);
-
-      // Convert RMS to decibels (dBFS)
-      const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
-
-      // Apply gain limiting with professional attack/release characteristics
-      let targetGain = 1.0;
-      
-      if (this.config.enabled && isFinite(db)) {
-        const limitRms = Math.pow(10, this.config.limitDB / 20);
-        const floor = Number.isFinite(this.config.limiterFloor) ? this.config.limiterFloor : (LIMITER_PRESETS[this.config.limiterStrength]?.floor ?? 0.01);
-        const release = Number.isFinite(this.config.limiterRelease) ? this.config.limiterRelease : (LIMITER_PRESETS[this.config.limiterStrength]?.release ?? 1.03);
-        
-        if (rms > limitRms) {
-          // ATTACK: Audio exceeds limit - reduce gain immediately (fast attack)
-          targetGain = Math.max(floor, limitRms / rms);
-          // Apply immediately for instant limiting
-          this.currentGain = targetGain;
-        } else {
-          // RELEASE: Audio under limit - restore gain gradually
-          // Release time: ~100ms for perceptible but smooth recovery
-          // At 30 FPS (33ms per frame), increment by ~3% per frame
-          targetGain = Math.min(1.0, this.currentGain * release);
-          this.currentGain = targetGain;
-        }
-      } else {
-        // Limiting disabled - restore to unity gain quickly
-        this.currentGain = 1.0;
-        targetGain = 1.0;
-      }
-
-      // Apply calculated gain directly for immediate response
-      this.gainNode.gain.value = targetGain;
-
-      // Send decibel updates to background (throttled to 20 FPS)
-      const now = performance.now();
-      if (now - this.lastSendTime > 50) { // 20 FPS for UI updates
-        this.lastSendTime = now;
-        this.sendDecibelUpdate(db);
-      }
-
-    } catch (error) {
-      console.error('Audio processing error:', error);
-    }
+  #handleMeter({ db, gain }) {
+    this.sendDecibelUpdate(db, gain > 0 ? 20 * Math.log10(gain) : 0);
   }
 
   /**
    * Sends decibel level update to background script.
    * @param {number} db - Current decibel level
+   * @param {number} gainDB - Currently applied gain, in dB
    */
-  sendDecibelUpdate(db) {
+  sendDecibelUpdate(db, gainDB = 0) {
     if (this.tabId) {
       chrome.runtime.sendMessage({
         type: 'updateDB',
         db: isFinite(db) ? db : -Infinity,
+        gainDB,
         tabId: this.tabId,
         source: 'offscreen'
       }).catch(error => {

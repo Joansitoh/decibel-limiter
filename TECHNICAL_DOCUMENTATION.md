@@ -77,7 +77,7 @@ The extension follows a modular architecture with **dual-mode processing** and f
 - **State Management**: Tabs, audio levels, and settings
 - **Message Routing**: Handles communication between components
 - **Statistics**: Calculates exponential moving averages and peaks
-- **Storage**: Manages persistent settings with browser storage APIs (Chromium-compatible)
+- **Storage**: Per-tab settings in `chrome.storage.session` (cleared per tab / on browser close); when "Apply to all sites" is on, the limiter settings instead live in `chrome.storage.local` under a single global key, persist across restarts, and are pushed to every open tab
 - **Tab Capture Orchestration**: Manages offscreen document lifecycle
 
 ### Popup UI
@@ -92,43 +92,63 @@ The extension follows a modular architecture with **dual-mode processing** and f
 
 ### Signal Flow
 
-**Normal Mode (Content Script)**:
+Limiting runs inside an **AudioWorklet** (`js/limiter-processor.js`), on the audio rendering thread — not a main-thread `setInterval` loop. Unlike a simple analysis tap, the worklet sits directly in the signal path: it reads the input, buffers it for a few milliseconds (lookahead), computes the gain from that buffered window, and writes the gain-adjusted result to its own output. Every path still ends in a `DynamicsCompressorNode`, kept purely as a last-resort safety net.
+
+**Normal Mode (Content Script)**, every element gets its own limiter node (independent audio per element):
 
 ```
-HTML Media Element → MediaElementSource → [Analyser] → Destination
-                                      → [GainNode] → Destination
+HTML Media Element → MediaElementSource → [AudioWorkletNode: lookahead limiter] → DynamicsCompressor(safety) → Destination
 ```
 
 **Enhanced Mode (Offscreen Document)**:
 
 ```
-Tab Audio Stream → MediaStreamSource → Analyser → GainNode → Destination
+Tab Audio Stream → MediaStreamSource → [AudioWorkletNode: lookahead limiter] → DynamicsCompressor(safety) → Destination
 ```
+
+### Lookahead Limiter
+
+A limiter that only reacts *after* seeing a loud sample always lets that sample through at full volume first — that's the "gets loud, then quickly backs off" feeling. To actually prevent audio from ever sounding louder than the ceiling, `js/limiter-processor.js` implements a **lookahead brickwall limiter** (`LookaheadLimiter`):
+
+1. Incoming audio is buffered for `LOOKAHEAD_BLOCKS` render quanta (~10.7ms @48kHz) before being emitted.
+2. For each buffered block still waiting to be output, the limiter knows its peak in advance, so it can compute `requiredGain = min(target gain of every block currently in the lookahead window)`.
+3. **Attack** is instant: if a louder block is detected, gain drops immediately — before that block is actually emitted — so it never overshoots the ceiling.
+4. **Release** ramps up gradually (dB/sec, per strength preset) once no louder block remains in the window.
+5. Gain is interpolated sample-by-sample across each emitted block (linear ramp from the previous applied gain), so there are no clicks — and because of the lookahead, the ramp's start and end are usually already close together by the time a loud block is actually emitted.
+
+See `LookaheadLimiter.process()` in `js/limiter-processor.js` and its self-check in `js/limiter-processor.test.js` (asserts the output literally never exceeds the ceiling, even right at a sudden peak).
 
 ### Key Features
 
-- **RMS Calculation**: Root Mean Square for accurate level metering (2048 FFT size)
-- **Exponential Moving Average**: EMA with alpha=0.3 for smooth display
-- **Dynamic Gain Control**: Automatic volume adjustment with gradual restoration
+- **Real Lookahead**: gain reduction is ramped in before a loud transient reaches the output, not after
+- **Per-strength Presets**: `floor` (max attenuation) and `release` (dB/sec recovery speed) — soft/normal/strong
+- **Safety Compressor**: Native `DynamicsCompressorNode` (threshold -3dB, ratio 20:1, ~3ms attack) after the limiter, as a last-resort net
 - **Silence Detection**: Ignores paused/inaudible content
-- **Zero Smoothing**: `analyser.smoothingTimeConstant = 0` for accurate readings
+- **Live Gain Readout**: the worklet reports the currently applied gain back to the popup ~20 times/sec
 
 ### Gain Algorithm
 
 ```javascript
-if (rms > limitRms) {
-  gain = max(0.01, limitRms / rms); // Immediate reduction
+// For each incoming block, compute the gain it would need:
+targetGain = max(floor, min(1, ceilingLin / peak));
+
+// The gain applied to the block about to be emitted already accounts for
+// every louder block still buffered ahead of it (the lookahead window):
+requiredGain = min(targetGain for every block currently buffered);
+
+if (requiredDB < currentDB) {
+  activeGain = requiredGain;                              // ATTACK: instant, zero overshoot
 } else {
-  gain = min(1, currentGain * 1.01); // Gradual restoration
+  activeGain = min(requiredGain, currentGain + releasePerBlock); // RELEASE: gradual
 }
 ```
 
 ### Performance Considerations
 
-- **Efficient Updates**: 30 FPS processing (~33ms interval)
-- **Throttled UI Updates**: 20 FPS for decibel display (~50ms)
+- **Audio-thread Processing**: No main-thread polling loop; the worklet processes every 128-sample block in-place
+- **Throttled UI Updates**: Worklet reports gain/db back to the main thread ~20 times/sec
 - **Minimal CPU Usage**: Optimized Float32Array analysis
-- **Memory Management**: WeakMaps/WeakSets for element tracking
+- **Memory Management**: `Set`/`WeakSet` for element/node tracking
 - **History Limit**: 30 samples for moving average calculation
 
 ## Performance Optimizations
@@ -159,10 +179,12 @@ if (rms > limitRms) {
 ### Features
 
 - Real-time level meter with color coding
-- Configurable threshold (-60 to 0 dBFS)
+- Configurable ceiling (-60 to 0 dBFS) with soft/normal/strong/custom presets
+- Live applied-gain readout (dB reduction), shown while enabled
+- **Apply to all sites**: persists the current limiter setting in `chrome.storage.local` and pushes it to every open tab, so it stays active on any site/domain you visit — not just the current tab
 - Enable/disable toggle
 - Enhanced mode toggle (mic button)
-- Theme support (light/dark)
+- Dark, studio-style theme
 - Responsive design
 - Average dB display with 1 decimal precision
 
@@ -290,7 +312,7 @@ La extensión sigue una arquitectura modular con **procesamiento de doble modo**
 - **Gestión de Estado**: Pestañas, niveles de audio y configuraciones
 - **Enrutamiento de Mensajes**: Maneja la comunicación entre componentes
 - **Estadísticas**: Calcula promedios móviles exponenciales y picos
-- **Almacenamiento**: Gestiona configuraciones persistentes con APIs de almacenamiento del navegador (compatibles con Chromium)
+- **Almacenamiento**: configuración por pestaña en `chrome.storage.session` (se borra por pestaña / al cerrar el navegador); cuando "Aplicar a todas las webs" está activo, el ajuste del limitador vive en `chrome.storage.local` bajo una única clave global, persiste entre reinicios y se envía a todas las pestañas abiertas
 - **Orquestación de Captura**: Gestiona el ciclo de vida del documento offscreen
 
 ### Interfaz Emergente
@@ -305,43 +327,63 @@ La extensión sigue una arquitectura modular con **procesamiento de doble modo**
 
 ### Flujo de Señal
 
-**Modo Normal (Script de Contenido)**:
+La limitación se ejecuta dentro de un **AudioWorklet** (`js/limiter-processor.js`), en el hilo de renderizado de audio — ya no en un bucle `setInterval` del hilo principal. A diferencia de un simple "tap" de análisis, el worklet está directamente en el camino de la señal: lee la entrada, la retiene en un buffer unos milisegundos (lookahead), calcula la ganancia a partir de esa ventana retenida, y escribe el resultado ya ajustado en su propia salida. Cada camino sigue terminando en un `DynamicsCompressorNode`, mantenido solo como red de seguridad de último recurso.
+
+**Modo Normal (Script de Contenido)**, cada elemento tiene su propio nodo limitador (audio independiente por elemento):
 
 ```
-Elemento Media HTML → MediaElementSource → [Analyser] → Destino
-                                       → [GainNode] → Destino
+Elemento Media HTML → MediaElementSource → [AudioWorkletNode: limitador con lookahead] → DynamicsCompressor(seguridad) → Destino
 ```
 
 **Modo Enhanced (Documento Offscreen)**:
 
 ```
-Stream Audio Pestaña → MediaStreamSource → Analyser → GainNode → Destino
+Stream Audio Pestaña → MediaStreamSource → [AudioWorkletNode: limitador con lookahead] → DynamicsCompressor(seguridad) → Destino
 ```
+
+### Limitador con Lookahead
+
+Un limitador que solo reacciona *después* de ver una muestra fuerte siempre deja pasar esa muestra a volumen completo primero — de ahí la sensación de "suena fuerte y luego rápidamente se afloja". Para evitar de verdad que el audio suene por encima del techo, `js/limiter-processor.js` implementa un **limitador brickwall con lookahead** (`LookaheadLimiter`):
+
+1. El audio entrante se retiene en un buffer durante `LOOKAHEAD_BLOCKS` bloques de renderizado (~10.7ms @48kHz) antes de emitirse.
+2. Para cada bloque retenido que aún espera ser emitido, el limitador ya conoce su pico por adelantado, así que puede calcular `requiredGain = min(ganancia objetivo de cada bloque actualmente en la ventana de lookahead)`.
+3. El **ataque** es instantáneo: si se detecta un bloque más fuerte, la ganancia baja de inmediato — antes de que ese bloque se emita realmente — así nunca se pasa del techo.
+4. La **recuperación** sube gradualmente (dB/seg, según el preset de fuerza) una vez que ya no queda ningún bloque más fuerte en la ventana.
+5. La ganancia se interpola muestra a muestra dentro de cada bloque emitido (rampa lineal desde la última ganancia aplicada), así que no hay clics — y gracias al lookahead, el inicio y el final de esa rampa suelen estar ya muy cerca cuando el bloque fuerte se emite realmente.
+
+Ver `LookaheadLimiter.process()` en `js/limiter-processor.js` y su self-check en `js/limiter-processor.test.js` (verifica que la salida literalmente nunca supera el techo, incluso justo en un pico repentino).
 
 ### Características Clave
 
-- **Cálculo RMS**: Medición precisa de niveles (tamaño FFT 2048)
-- **Promedio Móvil Exponencial**: EMA con alpha=0.3 para visualización suave
-- **Control Dinámico de Ganancia**: Ajuste automático con restauración gradual
-- **Detección de Silencio**: Ignora contenido en pausa/inaudible
-- **Sin Suavizado**: `analyser.smoothingTimeConstant = 0` para lecturas precisas
+- **Lookahead Real**: la reducción de ganancia se rampa antes de que un transitorio fuerte llegue a la salida, no después
+- **Presets por Fuerza**: `floor` (atenuación máxima) y `release` (velocidad de recuperación en dB/seg) — suave/normal/fuerte
+- **Compresor de Seguridad**: `DynamicsCompressorNode` nativo (umbral -3dB, ratio 20:1, ataque ~3ms) tras el limitador, como red de último recurso
+- **Detección de Silencio**: ignora contenido en pausa/inaudible
+- **Lectura de Ganancia en Vivo**: el worklet reporta la ganancia actualmente aplicada al popup ~20 veces/seg
 
 ### Algoritmo de Ganancia
 
 ```javascript
-if (rms > limitRms) {
-  gain = max(0.01, limitRms / rms); // Reducción inmediata
+// Para cada bloque entrante, se calcula la ganancia que necesitaría:
+targetGain = max(floor, min(1, ceilingLin / peak));
+
+// La ganancia aplicada al bloque que está por emitirse ya tiene en cuenta
+// cualquier bloque más fuerte que siga retenido por delante (la ventana de lookahead):
+requiredGain = min(targetGain de cada bloque actualmente retenido);
+
+if (requiredDB < currentDB) {
+  activeGain = requiredGain;                                    // ATAQUE: instantáneo, sin overshoot
 } else {
-  gain = min(1, currentGain * 1.01); // Restauración gradual
+  activeGain = min(requiredGain, currentGain + releasePerBlock); // RECUPERACIÓN: gradual
 }
 ```
 
 ### Consideraciones de Rendimiento
 
-- **Actualizaciones Eficientes**: Procesamiento a 30 FPS (intervalo ~33ms)
-- **Actualizaciones UI Limitadas**: 20 FPS para visualización de decibelios (~50ms)
+- **Procesamiento en el Hilo de Audio**: sin bucle de sondeo en el hilo principal; el worklet procesa cada bloque de 128 muestras in-place
+- **Actualizaciones UI Limitadas**: el worklet reporta ganancia/dB al hilo principal ~20 veces/seg
 - **Uso Mínimo de CPU**: Análisis optimizado con Float32Array
-- **Gestión de Memoria**: WeakMaps/WeakSets para seguimiento de elementos
+- **Gestión de Memoria**: `Set`/`WeakSet` para seguimiento de elementos/nodos
 - **Límite de Historial**: 30 muestras para cálculo de promedio móvil
 
 ## Optimizaciones de Rendimiento
@@ -372,10 +414,12 @@ if (rms > limitRms) {
 ### Características
 
 - Medidor de nivel en tiempo real con codificación de colores
-- Umbral configurable (-60 a 0 dBFS)
+- Techo configurable (-60 a 0 dBFS) con presets suave/normal/fuerte/personalizado
+- Lectura en vivo de la ganancia aplicada (reducción en dB), visible mientras está activo
+- **Aplicar a todas las webs**: guarda el ajuste actual del limitador en `chrome.storage.local` y lo envía a todas las pestañas abiertas, así se mantiene activo en cualquier web/dominio que visites — no solo en la pestaña actual
 - Interruptor de activación/desactivación
 - Toggle de modo enhanced (botón micrófono)
-- Soporte de temas (claro/oscuro)
+- Tema oscuro estilo estudio
 - Diseño responsivo
 - Visualización de dB promedio con precisión de 1 decimal
 

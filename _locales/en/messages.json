@@ -106,5 +106,41 @@
   "footer": {
     "message": "Control the volume of your navigation tabs",
     "description": "Footer text"
+  },
+  "gainLabel": {
+    "message": "Gain",
+    "description": "Label for the live applied-gain readout"
+  },
+  "applyAllSitesLabel": {
+    "message": "Apply to all sites",
+    "description": "Label for the global (all-sites) persistence toggle"
+  },
+  "applyAllSitesTooltip": {
+    "message": "Keeps this exact limiter setting active on every site/tab you open (saved persistently), instead of per-tab only.",
+    "description": "Tooltip explaining the global persistence toggle"
+  },
+  "coachmarkIntro": {
+    "message": "New version available",
+    "description": "Text for the what's-new tour's intro screen"
+  },
+  "coachmarkStart": {
+    "message": "See what's new",
+    "description": "Button to start the what's-new tour from the intro"
+  },
+  "coachmarkPresets": {
+    "message": "New: pick the limiter's strength with a preset.",
+    "description": "Step 1 of the what's-new tour, points at the preset selector"
+  },
+  "coachmarkGlobalToggle": {
+    "message": "New: turn this on to apply the same setting to every site.",
+    "description": "Step 2 of the what's-new tour, points at the global toggle"
+  },
+  "coachmarkNext": {
+    "message": "Next",
+    "description": "Button to advance to the next tour step"
+  },
+  "coachmarkDone": {
+    "message": "Got it",
+    "description": "Button to dismiss the tour on the last step"
   }
 }

@@ -14,11 +14,11 @@ const State = Object.freeze({
   FAILED: 3
 });
 
-const LIMITER_PRESETS = Object.freeze({
-  soft: { floor: 0.05, release: 1.06 },
-  normal: { floor: 0.01, release: 1.03 },
-  strong: { floor: 0.003, release: 1.015 }
-});
+/**
+ * Safety net applied after the lookahead limiter, in case a fast transient
+ * still sneaks through. Native DynamicsCompressorNode — no custom DSP to maintain.
+ */
+const SAFETY_COMPRESSOR = Object.freeze({ threshold: -3, knee: 0, ratio: 20, attack: 0.003, release: 0.25 });
 
 /**
  * Safely executes a function and logs any errors without throwing.
@@ -31,11 +31,17 @@ function safe(fn) {
 /**
  * Singleton class that manages audio limiting for traditional HTML media elements.
  * Scans DOM for audio/video elements and applies Web Audio API processing.
+ *
+ * The actual limiting (lookahead peak detection + gain) happens inside an
+ * AudioWorklet (js/limiter-processor.js), on the audio rendering thread, sitting
+ * directly in each element's signal path — not a main-thread analysis loop
+ * feeding a separate GainNode. Every element gets its own worklet instance
+ * (each has independent audio), all sharing the same config.
  */
 class Limiter {
   /** @type {Limiter|null} - Singleton instance */
   static #instance = null;
-  
+
   /**
    * Gets the singleton instance of Limiter.
    * @returns {Limiter}
@@ -47,34 +53,28 @@ class Limiter {
 
   /** @type {number} - Current lifecycle state */
   #state = State.IDLE;
-  
+
   /** @type {AudioContext|null} - Web Audio API context */
   #audioCtx = null;
-  
-  /** @type {AnalyserNode|null} - Audio analyser for RMS calculation */
-  #analyser = null;
-  
-  /** @type {WeakMap<HTMLElement, GainNode>} - Maps media elements to their gain nodes */
-  #gainMap = new WeakMap();
-  
+
+  /** @type {Promise|null} - Resolves once the AudioWorklet module is loaded */
+  #workletReady = null;
+
+  /** @type {Set<AudioWorkletNode>} - Limiter node of every currently connected media element */
+  #limiterNodes = new Set();
+
   /** @type {WeakSet<HTMLElement>} - Tracks already processed media elements */
   #processed = new WeakSet();
-  
-  /** @type {number} - Current global gain value */
-  #globalGain = 1;
-  
-  /** @type {{enabled: boolean, limitDB: number}} - Limiter configuration */
+
+  /** @type {Object} - Limiter configuration */
   #config = { enabled: false, limitDB: -20, limiterStrength: 'normal' };
-  
+
   /** @type {MutationObserver|null} - DOM mutation observer */
   #observer = null;
-  
-  /** @type {number} - Timestamp of last decibel update sent */
-  #lastSendTs = 0;
-  
+
   /** @type {number|null} - Current tab ID */
   #tabId = null;
-  
+
   /** @type {boolean} - Flag to prevent duplicate gesture listeners */
   #gestureListenersAdded = false;
 
@@ -91,7 +91,6 @@ class Limiter {
       // After config is loaded, scan DOM and start observer
       this.#scanDom(document);
       this.#setupObserver();
-      this.#startMeterLoop();
       this.#state = State.READY;
     });
   }
@@ -100,19 +99,27 @@ class Limiter {
    * Updates the limiter configuration.
    * Called when background storage changes.
    * @param {Object} config - Configuration object
-   * @param {boolean} [config.enabled] - Whether limiting is enabled
-   * @param {number} [config.limitDB] - Decibel limit threshold
    */
-  updateConfig({ enabled, limitDB, limiterStrength, limiterFloor, limiterRelease }) {
+  updateConfig(config) {
+    const { enabled, limitDB, limiterStrength, limiterFloor, limiterRelease } = config;
     if (typeof enabled === 'boolean') this.#config.enabled = enabled;
     if (typeof limitDB === 'number') this.#config.limitDB = limitDB;
-    if (limiterStrength in LIMITER_PRESETS || limiterStrength === 'custom') this.#config.limiterStrength = limiterStrength;
+    if (typeof limiterStrength === 'string') this.#config.limiterStrength = limiterStrength;
     if (Number.isFinite(limiterFloor)) this.#config.limiterFloor = limiterFloor;
     if (Number.isFinite(limiterRelease)) this.#config.limiterRelease = limiterRelease;
+    this.#postConfig();
   }
 
   /**
-   * Creates and configures the Web Audio API context and analyser.
+   * Sends the current configuration to every connected element's limiter node.
+   * @private
+   */
+  #postConfig() {
+    this.#limiterNodes.forEach(node => node.port.postMessage({ type: 'config', config: this.#config }));
+  }
+
+  /**
+   * Creates the Web Audio API context and starts loading the limiter worklet module.
    * @private
    * @returns {AudioContext|null}
    */
@@ -120,9 +127,9 @@ class Limiter {
     if (this.#audioCtx || this.#state === State.FAILED) return this.#audioCtx;
     try {
       this.#audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      this.#analyser = this.#audioCtx.createAnalyser();
-      this.#analyser.fftSize = 2048;
-      this.#analyser.smoothingTimeConstant = 0; // No smoothing for accurate RMS
+      this.#workletReady = this.#audioCtx.audioWorklet
+        .addModule(chrome.runtime.getURL('js/limiter-processor.js'))
+        .catch(err => console.error('Failed to load limiter-processor worklet', err));
     } catch (err) {
       console.error('AudioContext error', err);
       this.#state = State.FAILED;
@@ -156,21 +163,38 @@ class Limiter {
 
   /**
    * Connects a media element to the Web Audio API processing chain.
+   * Marks the element as processed synchronously to avoid duplicate
+   * MediaElementSource creation while the worklet module is still loading.
    * @private
    * @param {HTMLMediaElement} el - Audio or video element to connect
    */
   #connectElement(el) {
     if (!el || this.#processed.has(el)) return;
     if (!this.#createAudioContext()) return; // Failed to create context
+    this.#processed.add(el);
+    this.#workletReady.then(() => safe(() => this.#wireElement(el)));
+  }
 
+  /**
+   * Builds the actual audio graph for a media element once the worklet is ready.
+   * @private
+   * @param {HTMLMediaElement} el
+   */
+  #wireElement(el) {
     try {
       const source = this.#audioCtx.createMediaElementSource(el);
-      const gain = this.#audioCtx.createGain();
-      source.connect(gain);
-      gain.connect(this.#audioCtx.destination);
-      source.connect(this.#analyser);
-      this.#gainMap.set(el, gain);
-      this.#processed.add(el);
+      const limiterNode = new AudioWorkletNode(this.#audioCtx, 'limiter-processor');
+      limiterNode.port.postMessage({ type: 'config', config: this.#config });
+      limiterNode.port.onmessage = event => this.#handleMeter(event.data);
+
+      const safety = this.#audioCtx.createDynamicsCompressor();
+      Object.entries(SAFETY_COMPRESSOR).forEach(([k, v]) => { safety[k].value = v; });
+
+      source.connect(limiterNode);
+      limiterNode.connect(safety);
+      safety.connect(this.#audioCtx.destination);
+
+      this.#limiterNodes.add(limiterNode);
     } catch (err) {
       // Element already connected - ignore subsequent attempts
     }
@@ -225,77 +249,19 @@ class Limiter {
   }
 
   /**
-   * Calculates RMS (Root Mean Square) from audio analyser data.
+   * Forwards the decibel/gain reading reported by a limiter node to the background script.
+   * The worklet already throttles its own reports (~40Hz); forwarding each one
+   * keeps the popup's meter smooth instead of relying on a second throttle here.
    * @private
-   * @returns {number} RMS value
+   * @param {{db: number, gain: number}} analysis
    */
-  #calcRms() {
-    if (!this.#analyser) return 0;
-    const buffer = new Float32Array(this.#analyser.fftSize);
-    this.#analyser.getFloatTimeDomainData(buffer);
-    let sumSq = 0;
-    for (let i = 0; i < buffer.length; i++) sumSq += buffer[i] * buffer[i];
-    return Math.sqrt(sumSq / buffer.length);
-  }
-
-  /**
-   * Calculates and applies gain limiting to all connected media elements.
-   * Sends decibel updates to background script.
-   * Uses professional attack/release times matching offscreen.js behavior.
-   * @private
-   */
-  #applyGain() {
-    const rms = this.#calcRms();
-    const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
-
-    // Calculate target gain based on configuration with attack/release
-    if (this.#config.enabled) {
-      const limitRms = Math.pow(10, this.#config.limitDB / 20);
-      const floor = Number.isFinite(this.#config.limiterFloor) ? this.#config.limiterFloor : (LIMITER_PRESETS[this.#config.limiterStrength]?.floor ?? 0.01);
-      const release = Number.isFinite(this.#config.limiterRelease) ? this.#config.limiterRelease : (LIMITER_PRESETS[this.#config.limiterStrength]?.release ?? 1.03);
-      
-      if (rms > limitRms) {
-        // ATTACK: Audio exceeds limit - reduce gain immediately (fast attack)
-        this.#globalGain = Math.max(floor, limitRms / rms);
-      } else {
-        // RELEASE: Audio under limit - restore gain gradually
-        // Release time: ~100ms for perceptible but smooth recovery
-        // At 30 FPS (33ms per frame), increment by ~3% per frame
-        this.#globalGain = Math.min(1.0, this.#globalGain * release);
-      }
-    } else {
-      this.#globalGain = 1;
-    }
-
-    // Apply calculated gain to all connected media elements
-    document.querySelectorAll('audio, video').forEach(el => {
-      if (el.isConnected) {
-        const gain = this.#gainMap.get(el);
-        if (gain) gain.gain.value = this.#globalGain;
-      }
-    });
-
-    const now = performance.now();
-    if (now - this.#lastSendTs > 50) {
-      this.#lastSendTs = now;
-      safe(() => chrome.runtime?.sendMessage({
-        type: 'updateDB',
-        db,
-        // Ensure decibel value is finite before sending
-        averageDB: isFinite(db) ? db : -Infinity
-      }));
-    }
-  }
-
-  /**
-   * Starts the audio processing loop at approximately 30 FPS.
-   * @private
-   */
-  #startMeterLoop() {
-    setInterval(() => {
-      if (this.#state !== State.READY) return;
-      this.#applyGain();
-    }, 33); // ~30 FPS
+  #handleMeter({ db, gain }) {
+    safe(() => chrome.runtime?.sendMessage({
+      type: 'updateDB',
+      db,
+      averageDB: isFinite(db) ? db : -Infinity,
+      gainDB: gain > 0 ? 20 * Math.log10(gain) : 0
+    }));
   }
 
   /**

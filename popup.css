@@ -1,29 +1,37 @@
 :root {
-  --primary: #6a4dff;
-  --primary-hover: #7b61ff;
-  --primary-light: #b47bff;
+  --primary: #7c5cff;
+  --primary-hover: #8f72ff;
+  --primary-light: #b79bff;
   --success-color: #2ecc71;
-  --warn-color: #ffb020;
-  --danger-color: #ff4d4f;
-  --bg: #f8f9fa;
-  --bg-card: #ffffff;
-  --text: #222;
-  --text-dim: #555;
-  --track: #e3e3e8;
-  --track-dark: #c8c8d0;
+  --warn-color: #f5a623;
+  --danger-color: #ff5566;
+  --bg: #101014;
+  --bg-card: #191a20;
+  --bg-card-raised: #1f2028;
+  --border: rgba(255, 255, 255, 0.06);
+  --text: #eef0f5;
+  --text-dim: #8a8d99;
+  --track: #26272f;
+  --track-dark: #34353f;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --primary: #6a4dff;
-    --primary-hover: #7b61ff;
-    --primary-light: #b47bff;
-    --bg: #141418;
-    --bg-card: #1b1b20;
-    --text: #fff;
-    --text-dim: #aaa;
-    --track: #2a2a31;
-    --track-dark: #3a3a44;
+    --primary: #7c5cff;
+    --primary-hover: #6a45ff;
+    --primary-light: #6d4ff2;
+    --bg: #f4f4f7;
+    --bg-card: #ffffff;
+    --bg-card-raised: #ffffff;
+    --border: rgba(0, 0, 0, 0.08);
+    --text: #1b1c22;
+    --text-dim: #6b6e79;
+    --track: #e6e7ec;
+    --track-dark: #d6d8e0;
+    --scrollbar-thumb: rgba(0, 0, 0, 0.18);
+    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -34,16 +42,46 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  overflow-x: hidden;
+  background: radial-gradient(120% 140% at 50% -10%, #1c1d26 0%, var(--bg) 55%);
   color: var(--text);
 }
 
+@media (prefers-color-scheme: light) {
+  body {
+    background: radial-gradient(120% 140% at 50% -10%, #ffffff 0%, var(--bg) 55%);
+  }
+}
+
 .container {
+  position: relative;
   width: 330px;
   padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .header {
@@ -62,6 +100,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   width: 56px;
   height: 56px;
   text-decoration: none;
@@ -75,7 +114,26 @@ body {
   display: block;
   background: var(--bg-card);
   padding: 8px;
-  box-shadow: 0 8px 22px rgba(0,0,0,0.20);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+/* Small hardware-style status LED, glows accent-green once the limiter is enabled */
+.led {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--track-dark);
+  border: 2px solid var(--bg);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.header-icon-wrap.active .led {
+  background: var(--success-color);
+  box-shadow: 0 0 8px 1px rgba(46, 204, 113, 0.7);
 }
 
 .header-text {
@@ -92,25 +150,19 @@ body {
 }
 
 .subtitle {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-dim);
   line-height: 1.1;
-}
-
-.github-link {
-  color: var(--text-dim);
-  transition: 0.2s;
-}
-
-.github-link:hover {
-  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .card {
   background: var(--bg-card);
+  border: 1px solid var(--border);
   padding: 16px;
   border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 6px 16px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -119,20 +171,31 @@ body {
 .section-header {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
   font-weight: 500;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .section-header .value {
   font-weight: 600;
-  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .meter-bar {
-  height: 6px;
+  height: 8px;
   background: var(--track);
   border-radius: 10px;
   overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .meter-fill {
@@ -142,16 +205,67 @@ body {
   transition: width 0.12s ease-out, background 0.18s ease-out;
 }
 
+.gain-readout {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+.gain-readout[hidden] {
+  display: none;
+}
+
 .scale-markers {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* "Apply to all sites" pill switch (persists to chrome.storage.local) */
+.toggle-card .section-header {
+  align-items: center;
+}
+
+.switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--track);
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.switch.active {
+  background: var(--primary);
+}
+
+.switch.active .switch-knob {
+  background: #fff;
+  transform: translateX(18px);
 }
 
 input[type="range"] {
   width: 100%;
   -webkit-appearance: none;
+  appearance: none;
   background: transparent;
 }
 
@@ -163,11 +277,14 @@ input[type="range"]::-webkit-slider-runnable-track {
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   height: 16px;
   width: 16px;
   background: var(--primary-light);
+  border: 2px solid var(--bg-card);
   border-radius: 50%;
-  margin-top: -5px;
+  margin-top: -6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   transition: 0.2s;
 }
 
@@ -228,30 +345,29 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .mic-toggle.enabled {
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(106,77,255,0.18);
+  box-shadow: 0 4px 12px rgba(124, 92, 255, 0.3);
 }
 
 .main-btn.enabled {
   background: var(--primary);
   color: white;
-  box-shadow: 0 4px 15px rgba(106, 77, 255, 0.3);
+  box-shadow: 0 4px 15px rgba(124, 92, 255, 0.35);
   transform: translateY(-1px);
 }
 
 .main-btn:not(.enabled) {
   background: var(--track);
   color: var(--text-dim);
-  opacity: 0.6;
 }
 
 .main-btn:not(.enabled):hover {
   background: var(--track-dark);
-  opacity: 0.8;
+  color: var(--text);
 }
 
 .main-btn.enabled:hover {
   background: var(--primary-hover);
-  box-shadow: 0 6px 20px rgba(106, 77, 255, 0.4);
+  box-shadow: 0 6px 20px rgba(124, 92, 255, 0.45);
 }
 
 .icon-btn {
@@ -262,7 +378,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .icon-btn:hover {
   background: var(--track-dark);
-  color: var(--primary);
+  color: var(--primary-light);
 }
 
 .info-btn {
@@ -293,6 +409,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   padding: 12px;
   border-radius: 10px;
   background: var(--bg-card);
+  border: 1px solid var(--border);
   box-shadow: none;
   font-size: 13px;
   color: var(--text);
@@ -322,7 +439,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .settings-view {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: var(--bg);
   z-index: 10;
@@ -334,6 +451,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
   pointer-events: none;
   transform: translateY(12px);
   transition: opacity 0.22s ease, transform 0.22s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .settings-view.visible {
@@ -408,13 +527,13 @@ input[type="range"]::-webkit-slider-thumb:hover {
   left: 50%;
   top: 130%;
   transform: translateX(-50%);
-  background: var(--text);
-  color: var(--bg);
+  background: var(--bg-card-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
   padding: 5px 10px;
   border-radius: 8px;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 400;
-  line-height: 1.4;
   white-space: normal;
   width: max-content;
   max-width: 240px;
@@ -433,4 +552,141 @@ input[type="range"]::-webkit-slider-thumb:hover {
   text-align: center;
   font-size: 11px;
   color: var(--text-dim);
+}
+
+/* Coachmark: a positioned box-shadow "hole" dims everything except the
+   highlighted element. Position/size is set inline via JS from the
+   element's real getBoundingClientRect, then transitions smoothly between steps. */
+.coachmark {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+}
+
+.coachmark[hidden] {
+  display: none !important;
+}
+
+/* Intro splash has no highlighted target and no card: just dim + blur the popup behind it */
+.coachmark.coachmark-intro {
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (prefers-color-scheme: light) {
+  .coachmark.coachmark-intro {
+    background: rgba(20, 20, 25, 0.35);
+  }
+}
+
+.coachmark-hole {
+  position: fixed;
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+  pointer-events: none;
+}
+
+@media (prefers-color-scheme: light) {
+  .coachmark-hole {
+    box-shadow: 0 0 0 9999px rgba(20, 20, 25, 0.5);
+  }
+}
+
+.coachmark-tooltip {
+  position: fixed;
+  width: 220px;
+  background: var(--bg-card-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.coachmark-tooltip-anim {
+  animation: coachmark-pop 0.22s ease;
+}
+
+/* Intro splash: tooltip becomes a centered, self-positioned card */
+.coachmark-intro .coachmark-tooltip {
+  position: static;
+  width: 240px;
+  align-items: center;
+  text-align: center;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+.coachmark-intro-icon {
+  display: none;
+  font-size: 26px;
+  color: var(--primary-light);
+  background: var(--track);
+  border-radius: 50%;
+  padding: 10px;
+  animation: coachmark-spin-in 0.4s ease;
+}
+
+.coachmark-intro .coachmark-intro-icon {
+  display: inline-flex;
+}
+
+.coachmark-step {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--primary-light);
+  text-transform: uppercase;
+}
+
+.coachmark-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.coachmark-intro .coachmark-text {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.coachmark-next {
+  align-self: flex-end;
+  height: 30px;
+  padding: 0 14px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.coachmark-intro .coachmark-next {
+  align-self: stretch;
+  height: 36px;
+  margin-top: 6px;
+}
+
+.coachmark-next:hover {
+  background: var(--primary-hover);
+}
+
+@keyframes coachmark-spin-in {
+  from { opacity: 0; transform: scale(0.5) rotate(-30deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@keyframes coachmark-pop {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }

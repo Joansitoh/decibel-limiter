@@ -18,26 +18,76 @@ const activeCaptures = new Map();
 /** @type {Set<number>} - Tabs currently starting a capture (prevents duplicate concurrent starts) */
 const captureStarting = new Set();
 
+/** @type {Map<number, number>} - Maps tab ID to last popup-notify timestamp (throttles UI updates) */
+const lastPopupNotify = new Map();
+
 /**
  * Per-tab config stored in chrome.storage.session.
  * Persists across service worker restarts (SW is killed after ~5 s of inactivity in MV3)
  * but is cleared when the browser is closed — session-only, never written to disk.
  * Cleared individually when a tab is closed.
+ *
+ * When `global` is turned on, the limiter fields (everything except
+ * `captureEnabled`, which is inherently per-tab) are instead read from
+ * `GLOBAL_STORAGE_KEY` in chrome.storage.local — persistent across browser
+ * restarts and applied to every tab/domain automatically.
  */
-const DEFAULT_CONFIG = Object.freeze({ enabled: false, limitDB: -20, captureEnabled: false, limiterStrength: 'normal', limiterFloor: 0.01, limiterRelease: 1.03 });
-const LIMITER_STRENGTHS = new Set(['soft', 'normal', 'strong', 'custom']);
-const LIMITER_PRESETS = Object.freeze({
-  soft: { floor: 0.05, release: 1.06 },
-  normal: { floor: 0.01, release: 1.03 },
-  strong: { floor: 0.003, release: 1.015 }
+const DEFAULT_CONFIG = Object.freeze({
+  enabled: false,
+  limitDB: -20,
+  captureEnabled: false,
+  limiterStrength: 'normal',
+  limiterFloor: 0.01,
+  limiterRelease: 8, // dB/sec
+  global: false
 });
+const LIMITER_STRENGTHS = new Set(['soft', 'normal', 'strong', 'custom']);
+// release is expressed in dB/sec (how fast gain recovers once no longer needed)
+const LIMITER_PRESETS = Object.freeze({
+  soft: { floor: 0.05, release: 15 },
+  normal: { floor: 0.01, release: 8 },
+  strong: { floor: 0.003, release: 4 }
+});
+
+const GLOBAL_STORAGE_KEY = 'global_config';
 
 function tabConfigKey(tabId) { return `tab_cfg_${tabId}`; }
 
+/**
+ * Reads the persistent "apply to all sites" config, if any is stored.
+ * @returns {Promise<Object|null>}
+ */
+async function getGlobalConfig() {
+  const data = await chrome.storage.local.get(GLOBAL_STORAGE_KEY);
+  return data[GLOBAL_STORAGE_KEY] ?? null;
+}
+
+async function setGlobalConfig(cfg) {
+  await chrome.storage.local.set({ [GLOBAL_STORAGE_KEY]: cfg });
+}
+
+async function clearGlobalConfig() {
+  await chrome.storage.local.remove(GLOBAL_STORAGE_KEY);
+}
+
+/**
+ * Resolves the effective config for a tab: the persistent global config when
+ * "apply to all sites" is active (same limiter settings everywhere), merged
+ * with that tab's own `captureEnabled` (tab capture is exclusive/per-tab by
+ * nature and never forced globally); otherwise the tab's own session config.
+ * @param {number} tabId
+ * @returns {Promise<Object>}
+ */
 async function getTabConfig(tabId) {
   const key = tabConfigKey(tabId);
   const data = await chrome.storage.session.get(key);
-  return data[key] ?? { ...DEFAULT_CONFIG };
+  const perTab = data[key] ?? { ...DEFAULT_CONFIG };
+
+  const globalCfg = await getGlobalConfig();
+  if (globalCfg?.global) {
+    return { ...globalCfg, captureEnabled: perTab.captureEnabled ?? false };
+  }
+  return perTab;
 }
 
 async function setTabConfig(tabId, cfg) {
@@ -101,6 +151,16 @@ function calcAverage(list = []) {
   return isFinite(ema) ? ema : -Infinity;
 }
 
+// Must match WHATS_NEW_VERSION in popup.js — marking it seen on fresh install
+// means only existing users (who update into a new value) see the banner.
+const WHATS_NEW_VERSION = 'presets-2026-08';
+
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+  if (reason === 'install') {
+    chrome.storage.local.set({ seenWhatsNew: WHATS_NEW_VERSION });
+  }
+});
+
 /**
  * Main message handler for communication between extension components.
  * Handles config requests, decibel updates, and tab capture control.
@@ -127,12 +187,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           // Update peak decibel level
           const oldPeak = peakDB.get(tabId) ?? -Infinity;
           peakDB.set(tabId, isFinite(db) && db > oldPeak ? db : oldPeak);
-          // Notify popup of decibel updates
-          chrome.runtime.sendMessage({
-            type: 'updateDB', tabId, db,
-            averageDB: calcAverage(hist),
-            peakDB: peakDB.get(tabId)
-          }).catch(() => { }); // Ignore errors when popup is closed
+          // Notify popup of decibel updates — throttled to ~30Hz so multiple
+          // media elements reporting at 40Hz each can't flood the popup; the
+          // popup's own rAF meter loop keeps the bar smooth between messages.
+          const now = Date.now();
+          if (now - (lastPopupNotify.get(tabId) ?? 0) > 33) {
+            lastPopupNotify.set(tabId, now);
+            chrome.runtime.sendMessage({
+              type: 'updateDB', tabId, db,
+              averageDB: calcAverage(hist),
+              peakDB: peakDB.get(tabId),
+              gainDB: typeof msg.gainDB === 'number' ? msg.gainDB : undefined
+            }).catch(() => { }); // Ignore errors when popup is closed
+          }
           sendResponse({ success: true });
           break;
         }
@@ -161,18 +228,41 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             const captureEnabled = !!msg.captureEnabled;
             const limiterStrength = LIMITER_STRENGTHS.has(msg.limiterStrength) ? msg.limiterStrength : 'normal';
             const limiterFloor = Number.isFinite(msg.limiterFloor) ? msg.limiterFloor : (LIMITER_PRESETS[limiterStrength]?.floor ?? 0.01);
-            const limiterRelease = Number.isFinite(msg.limiterRelease) ? msg.limiterRelease : (LIMITER_PRESETS[limiterStrength]?.release ?? 1.03);
+            const limiterRelease = Number.isFinite(msg.limiterRelease) ? msg.limiterRelease : (LIMITER_PRESETS[limiterStrength]?.release ?? 8);
+            const global = !!msg.global;
 
             if (tabId != null) {
               const previousCfg = await getTabConfig(tabId);
-              const nextConfig = { enabled, limitDB, captureEnabled, limiterStrength, limiterFloor, limiterRelease };
+              const nextConfig = { enabled, limitDB, captureEnabled, limiterStrength, limiterFloor, limiterRelease, global };
               await setTabConfig(tabId, nextConfig);
 
-              try {
-                await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', enabled, limitDB, captureEnabled, limiterStrength, limiterFloor, limiterRelease });
-              } catch (e) { /* ignore if no content script */ }
+              if (global) {
+                // Persist and push to every open tab, so it "sticks" everywhere right away.
+                await setGlobalConfig({ enabled, limitDB, limiterStrength, limiterFloor, limiterRelease, global: true });
+                const tabs = await chrome.tabs.query({});
+                await Promise.all(tabs.map(async t => {
+                  const tabCfg = await getTabConfig(t.id);
+                  try { await chromeAsync.sendMessageTab(t.id, { type: 'setConfig', ...tabCfg }); } catch (e) { /* ignore if no content script */ }
+                  chrome.action.setBadgeText({ tabId: t.id, text: tabCfg.enabled ? 'ON' : '' });
+                  if (tabCfg.enabled) chrome.action.setBadgeBackgroundColor({ tabId: t.id, color: '#2ecc71' });
+                }));
+              } else {
+                await clearGlobalConfig();
+                try {
+                  await chromeAsync.sendMessageTab(tabId, { type: 'setConfig', ...nextConfig });
+                } catch (e) { /* ignore if no content script */ }
 
-              // Only toggle capture when the flag actually changed
+                if (enabled) {
+                  chrome.action.setBadgeText({ tabId, text: 'ON' });
+                  chrome.action.setBadgeBackgroundColor({ tabId, color: '#2ecc71' });
+                  chrome.action.setTitle({ tabId, title: 'Decibel Limiter — Enabled' });
+                } else {
+                  chrome.action.setBadgeText({ tabId, text: '' });
+                  chrome.action.setTitle({ tabId, title: 'Decibel Limiter' });
+                }
+              }
+
+              // Tab capture is exclusive/per-tab by nature — never driven by global mode.
               if (captureEnabled !== !!previousCfg.captureEnabled) {
                 if (captureEnabled) {
                   try { await startTabCapture(tabId); } catch (e) { /* ignore */ }
@@ -182,15 +272,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
               } else if (captureEnabled && activeCaptures.has(tabId)) {
                 // Capture already active — propagate updated config to offscreen
                 try { await chrome.runtime.sendMessage({ type: 'update-config', config: nextConfig }); } catch (e) {}
-              }
-
-              if (enabled) {
-                chrome.action.setBadgeText({ tabId, text: 'ON' });
-                chrome.action.setBadgeBackgroundColor({ tabId, color: '#2ecc71' });
-                chrome.action.setTitle({ tabId, title: 'Decibel Limiter — Enabled' });
-              } else {
-                chrome.action.setBadgeText({ tabId, text: '' });
-                chrome.action.setTitle({ tabId, title: 'Decibel Limiter' });
               }
             }
           } catch (err) {
@@ -294,6 +375,7 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   historyDB.delete(tabId);
   peakDB.delete(tabId);
   captureStarting.delete(tabId);
+  lastPopupNotify.delete(tabId);
   await removeTabConfig(tabId);
 
   if (activeCaptures.has(tabId)) {

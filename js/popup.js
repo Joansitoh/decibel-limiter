@@ -4,6 +4,25 @@
  */
 
 (() => {
+  // Bump this string when shipping a change worth telling existing users about
+  // (shown once as a 2-step coachmark, then never again for that version).
+  // Must match WHATS_NEW_VERSION in background.js, which marks fresh installs
+  // as already-seen so new users never get the tour.
+  const WHATS_NEW_VERSION = 'presets-2026-08';
+  const WHATS_NEW_STORAGE_KEY = 'seenWhatsNew';
+
+  const COACHMARK_STEPS = [
+    { targetId: 'presetSelector', textKey: 'coachmarkPresets' },
+    { targetId: 'globalToggle', textKey: 'coachmarkGlobalToggle' }
+  ];
+
+  // release is expressed in dB/sec (how fast gain recovers once no longer needed)
+  const STRENGTH_PRESETS = {
+    soft: { floor: 0.05, release: 15 },
+    normal: { floor: 0.01, release: 8 },
+    strong: { floor: 0.003, release: 4 }
+  };
+
   class Popup {
     #tabId = null;
 
@@ -13,13 +32,19 @@
       captureEnabled: false,
       limiterStrength: 'normal',
       limiterFloor: 0.01,
-      limiterRelease: 1.03
+      limiterRelease: 8,
+      global: false
     };
 
     #currentDB = null;
     #averageDB = null;
+    #currentGainDB = null;
     #lastRender = 0;
+    #meterAnimId = null;
+    /** @type {number|null} - Smoothed level actually shown on the meter (fast rise, slow fall) */
+    #displayedDB = null;
     #elements = {};
+    #coachmarkStepIndex = 0;
 
     constructor() {
       document.addEventListener('DOMContentLoaded', () => this.init());
@@ -29,12 +54,13 @@
     async init() {
       this.#cacheElements();
       this.#localize();
-      this.#setupThemeWatcher();
       this.#bindUIEvents();
       this.#listenBackground();
       await this.#identifyTab();
       await this.#loadConfig();
       this.#requestCurrentDB();
+      this.#startMeterLoop();
+      this.#checkWhatsNew();
     }
 
     #cacheElements() {
@@ -43,6 +69,7 @@
 
       this.#elements = {
         averageDB: qs('averageDB'),
+        gainReadout: qs('gainReadout'),
         meterFill: qs('meterFill'),
         limitSlider: qs('limitSlider'),
         limitValue: qs('limitValue'),
@@ -54,11 +81,16 @@
         closeInfo: qs('closeInfo'),
         settingsView: qs('settingsView'),
         closeSettings: qs('closeSettings'),
+        coachmark: qs('coachmark'),
+        coachmarkStep: qs('coachmarkStep'),
+        coachmarkText: qs('coachmarkText'),
+        coachmarkNext: qs('coachmarkNext'),
         presetSelector: qs('presetSelector'),
         floorSlider: qs('floorSlider'),
         floorValue: qs('floorValue'),
         releaseSlider: qs('releaseSlider'),
         releaseValue: qs('releaseValue'),
+        globalToggle: qs('globalToggle'),
         headerIconWrap: q('.header-icon-wrap'),
       };
     }
@@ -85,19 +117,6 @@
       document.title = chrome.i18n.getMessage('extensionName');
     }
 
-    /**
-     * Ensures body receives theme ('dark' class) based on system preference.
-     */
-    #setupThemeWatcher() {
-      const apply = () => {
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.body.classList.toggle('dark', isDark);
-      };
-
-      apply();
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', apply);
-    }
-
     #bindUIEvents() {
       // Slider
       this.#elements.limitSlider.addEventListener('input', e => {
@@ -118,7 +137,6 @@
         );
         this.#elements.headerIconWrap?.classList.toggle('active', this.#config.enabled);
         this.#saveConfig();
-        this.#render();
       });
 
       // Mic toggle (inside main button) - toggles enhanced capture
@@ -133,7 +151,6 @@
         icon.textContent = this.#config.captureEnabled ? 'mic' : 'mic_off';
 
         this.#saveConfig();
-        this.#render();
       });
 
       // Enhanced mode info toggle
@@ -144,6 +161,9 @@
       this.#elements.closeInfo?.addEventListener('click', () => {
         this.#elements.enhancedInfo?.setAttribute('hidden', '');
       });
+
+      this.#elements.coachmarkNext?.addEventListener('click', () => this.#advanceCoachmark());
+      window.addEventListener('resize', () => this.#positionCoachmark());
 
       this.#elements.closeSettings?.addEventListener('click', () => {
         this.#elements.settingsView?.classList.remove('visible');
@@ -158,7 +178,7 @@
         }
         this.#config.limiterStrength = preset;
         this.#updatePresetButtons(preset);
-        this.#saveLimiterConfig();
+        this.#saveConfig();
       });
 
       this.#elements.floorSlider?.addEventListener('input', e => {
@@ -167,16 +187,23 @@
         if (this.#elements.floorValue) this.#elements.floorValue.textContent = val.toFixed(3);
         this.#config.limiterStrength = 'custom';
         this.#updatePresetButtons('custom');
-        this.#saveLimiterConfig();
+        this.#saveConfig();
       });
 
       this.#elements.releaseSlider?.addEventListener('input', e => {
-        const val = +e.target.value / 1000;
+        const val = +e.target.value;
         this.#config.limiterRelease = val;
-        if (this.#elements.releaseValue) this.#elements.releaseValue.textContent = val.toFixed(3);
+        if (this.#elements.releaseValue) this.#elements.releaseValue.textContent = `${val} dB/s`;
         this.#config.limiterStrength = 'custom';
         this.#updatePresetButtons('custom');
-        this.#saveLimiterConfig();
+        this.#saveConfig();
+      });
+
+      // "Apply to all sites": persists globally and pushes to every open tab
+      this.#elements.globalToggle?.addEventListener('click', () => {
+        this.#config.global = !this.#config.global;
+        this.#applyGlobalToggleUI();
+        this.#saveConfig();
       });
 
       // Reposition tooltips so they never overflow the popup bounds
@@ -222,9 +249,10 @@
     #listenBackground() {
       chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (msg.type === 'updateDB' && msg.tabId === this.#tabId) {
+          // Just update the raw data — the rAF meter loop repaints continuously.
           if (typeof msg.db === 'number') this.#currentDB = msg.db;
           if (typeof msg.averageDB === 'number') this.#averageDB = msg.averageDB;
-          this.#render();
+          if (typeof msg.gainDB === 'number') this.#currentGainDB = msg.gainDB;
         }
         sendResponse({ received: true });
         return true;
@@ -249,7 +277,8 @@
       this.#config.captureEnabled = !!cfg.captureEnabled;
       this.#config.limiterStrength = ['soft', 'normal', 'strong', 'custom'].includes(cfg.limiterStrength) ? cfg.limiterStrength : 'normal';
       this.#config.limiterFloor = Number.isFinite(cfg.limiterFloor) ? cfg.limiterFloor : 0.01;
-      this.#config.limiterRelease = Number.isFinite(cfg.limiterRelease) ? cfg.limiterRelease : 1.03;
+      this.#config.limiterRelease = Number.isFinite(cfg.limiterRelease) ? cfg.limiterRelease : 8;
+      this.#config.global = !!cfg.global;
 
       // UI updates
       this.#elements.limitSlider.value = this.#config.limitDB;
@@ -276,22 +305,120 @@
           if (this.#elements.floorValue) this.#elements.floorValue.textContent = this.#config.limiterFloor.toFixed(3);
         }
         if (this.#elements.releaseSlider) {
-          this.#elements.releaseSlider.value = Math.round(this.#config.limiterRelease * 1000);
-          if (this.#elements.releaseValue) this.#elements.releaseValue.textContent = this.#config.limiterRelease.toFixed(3);
+          this.#elements.releaseSlider.value = this.#config.limiterRelease;
+          if (this.#elements.releaseValue) this.#elements.releaseValue.textContent = `${this.#config.limiterRelease} dB/s`;
         }
       }
       this.#updatePresetButtons(isKnownPreset ? this.#config.limiterStrength : 'custom');
+      this.#applyGlobalToggleUI();
+    }
 
-      this.#render();
+    async #checkWhatsNew() {
+      const data = await chrome.storage.local.get(WHATS_NEW_STORAGE_KEY);
+      if (data[WHATS_NEW_STORAGE_KEY] === WHATS_NEW_VERSION) return;
+
+      this.#elements.settingsView?.classList.add('visible');
+      this.#coachmarkStepIndex = -1; // -1 = intro splash, before step 0
+      this.#showCoachmarkStep();
+    }
+
+    #showCoachmarkStep() {
+      // Re-trigger the CSS pop animation even though the tooltip element is reused
+      const tooltip = this.#elements.coachmark?.querySelector('.coachmark-tooltip');
+      if (tooltip) {
+        tooltip.classList.remove('coachmark-tooltip-anim');
+        void tooltip.offsetWidth; // force reflow so the class re-add restarts the animation
+        tooltip.classList.add('coachmark-tooltip-anim');
+      }
+
+      if (this.#coachmarkStepIndex === -1) {
+        this.#elements.coachmark?.classList.add('coachmark-intro');
+        if (this.#elements.coachmarkStep) this.#elements.coachmarkStep.textContent = '';
+        if (this.#elements.coachmarkText) this.#elements.coachmarkText.textContent = chrome.i18n.getMessage('coachmarkIntro');
+        if (this.#elements.coachmarkNext) this.#elements.coachmarkNext.textContent = chrome.i18n.getMessage('coachmarkStart');
+        this.#elements.coachmark?.querySelector('.coachmark-hole')?.remove();
+        this.#elements.coachmark?.removeAttribute('hidden');
+        return;
+      }
+
+      this.#elements.coachmark?.classList.remove('coachmark-intro');
+
+      const step = COACHMARK_STEPS[this.#coachmarkStepIndex];
+      if (!step) {
+        this.#elements.coachmark?.setAttribute('hidden', '');
+        chrome.storage.local.set({ [WHATS_NEW_STORAGE_KEY]: WHATS_NEW_VERSION });
+        return;
+      }
+
+      const isLast = this.#coachmarkStepIndex === COACHMARK_STEPS.length - 1;
+      if (this.#elements.coachmarkStep) {
+        this.#elements.coachmarkStep.textContent = `${this.#coachmarkStepIndex + 1}/${COACHMARK_STEPS.length}`;
+      }
+      if (this.#elements.coachmarkText) {
+        this.#elements.coachmarkText.textContent = chrome.i18n.getMessage(step.textKey);
+      }
+      if (this.#elements.coachmarkNext) {
+        this.#elements.coachmarkNext.textContent = chrome.i18n.getMessage(isLast ? 'coachmarkDone' : 'coachmarkNext');
+      }
+
+      this.#elements.coachmark?.removeAttribute('hidden');
+      this.#positionCoachmark();
+    }
+
+    #advanceCoachmark() {
+      this.#coachmarkStepIndex += 1;
+      this.#showCoachmarkStep();
+    }
+
+    #positionCoachmark() {
+      if (this.#elements.coachmark?.hasAttribute('hidden')) return;
+      const step = COACHMARK_STEPS[this.#coachmarkStepIndex];
+      const target = step && document.getElementById(step.targetId);
+      const tooltip = this.#elements.coachmark?.querySelector('.coachmark-tooltip');
+      if (!target || !tooltip) return;
+
+      target.scrollIntoView({ block: 'center' });
+
+      const rect = target.getBoundingClientRect();
+      const pad = 6;
+
+      // Spotlight: a positioned box whose giant box-shadow dims everything
+      // except its own rounded rect, placed over the target's real coords.
+      let hole = this.#elements.coachmark.querySelector('.coachmark-hole');
+      if (!hole) {
+        hole = document.createElement('div');
+        hole.className = 'coachmark-hole';
+        this.#elements.coachmark.prepend(hole);
+      }
+      hole.style.top = `${rect.top - pad}px`;
+      hole.style.left = `${rect.left - pad}px`;
+      hole.style.width = `${rect.width + pad * 2}px`;
+      hole.style.height = `${rect.height + pad * 2}px`;
+
+      // Tooltip below the target by default, flipped above if it would overflow
+      const bodyRect = document.body.getBoundingClientRect();
+      const tooltipHeight = tooltip.offsetHeight || 90;
+      const spaceBelow = bodyRect.bottom - rect.bottom;
+      const top = spaceBelow > tooltipHeight + 16
+        ? rect.bottom + 10
+        : rect.top - tooltipHeight - 10;
+
+      const left = Math.min(
+        Math.max(rect.left, 12),
+        bodyRect.width - tooltip.offsetWidth - 12
+      );
+
+      tooltip.style.top = `${Math.max(top, 12)}px`;
+      tooltip.style.left = `${left}px`;
     }
 
     #saveConfig() {
       chrome.runtime.sendMessage({ type: 'setConfig', tabId: this.#tabId, ...this.#config });
     }
 
-    #saveLimiterConfig() {
-      const { enabled, limitDB, captureEnabled, limiterStrength, limiterFloor, limiterRelease } = this.#config;
-      chrome.runtime.sendMessage({ type: 'setConfig', tabId: this.#tabId, enabled, limitDB, captureEnabled, limiterStrength, limiterFloor, limiterRelease });
+    #applyGlobalToggleUI() {
+      this.#elements.globalToggle?.classList.toggle('active', this.#config.global);
+      this.#elements.globalToggle?.setAttribute('aria-checked', String(!!this.#config.global));
     }
 
     #updatePresetButtons(activePreset) {
@@ -301,12 +428,7 @@
     }
 
     #syncSlidersFromPreset(preset) {
-      const presets = {
-        soft: { floor: 0.05, release: 1.06 },
-        normal: { floor: 0.01, release: 1.03 },
-        strong: { floor: 0.003, release: 1.015 }
-      };
-      const p = presets[preset];
+      const p = STRENGTH_PRESETS[preset];
       if (!p) return;
       this.#config.limiterFloor = p.floor;
       this.#config.limiterRelease = p.release;
@@ -315,8 +437,8 @@
         if (this.#elements.floorValue) this.#elements.floorValue.textContent = p.floor.toFixed(3);
       }
       if (this.#elements.releaseSlider) {
-        this.#elements.releaseSlider.value = Math.round(p.release * 1000);
-        if (this.#elements.releaseValue) this.#elements.releaseValue.textContent = p.release.toFixed(3);
+        this.#elements.releaseSlider.value = p.release;
+        if (this.#elements.releaseValue) this.#elements.releaseValue.textContent = `${p.release} dB/s`;
       }
     }
 
@@ -336,25 +458,67 @@
           this.#currentDB = typeof response.db === 'number' ? response.db : null;
           this.#averageDB = typeof response.averageDB === 'number' ? response.averageDB : null;
         }
-
-        this.#render();
       } catch (err) {
         console.warn('Error requesting current DB:', err);
       }
     }
 
-    #render() {
-      const now = performance.now();
-      if (now - this.#lastRender < 16) return;
-      this.#lastRender = now;
+    /**
+     * Runs the level meter with requestAnimationFrame so it repaints at the
+     * display's refresh rate (~60Hz) even though audio data only arrives a
+     * few dozen times per second. The displayed level uses a fast-attack /
+     * slow-release envelope: it jumps up instantly on peaks and falls
+     * smoothly, like the meter on a mixing desk, instead of freezing between
+     * message updates.
+     * @private
+     */
+    #startMeterLoop() {
+      const step = (now) => {
+        this.#meterAnimId = requestAnimationFrame(step);
 
-      const displayDB = (this.#config.enabled || this.#config.captureEnabled) ? this.#currentDB : null;
+        const isActive = this.#config.enabled || this.#config.captureEnabled;
+        const raw = isActive ? this.#currentDB : null;
 
+        let target = (raw === null || !isFinite(raw)) ? null : raw;
+        if (target === null) {
+          this.#displayedDB = null;
+        } else if (this.#displayedDB === null || !isFinite(this.#displayedDB)) {
+          this.#displayedDB = target;
+        } else if (target > this.#displayedDB) {
+          this.#displayedDB = target; // fast attack: peaks show instantly
+        } else {
+          // slow release: fall ~45dB/s towards silence
+          const dt = now - (this.#lastRender || now);
+          this.#displayedDB = Math.max(target, this.#displayedDB - (dt / 1000) * 45);
+        }
+        this.#lastRender = now;
+
+        this.#render(this.#displayedDB, isActive);
+      };
+      this.#meterAnimId = requestAnimationFrame(step);
+    }
+
+    /**
+     * Paints the UI from the already-smoothed level.
+     * @param {number|null} displayDB - Smoothed dB to show, or null when inactive
+     * @param {boolean} isActive
+     */
+    #render(displayDB, isActive) {
       if (this.#elements.averageDB) {
         this.#elements.averageDB.textContent =
           (displayDB === null || !isFinite(displayDB))
             ? '-∞ dBFS'
             : `${Math.round(displayDB * 10) / 10} dBFS`;
+      }
+
+      if (this.#elements.gainReadout) {
+        if (isActive && this.#config.enabled && typeof this.#currentGainDB === 'number' && isFinite(this.#currentGainDB)) {
+          const sign = this.#currentGainDB >= 0 ? '+' : '';
+          this.#elements.gainReadout.textContent = `${chrome.i18n.getMessage('gainLabel')}: ${sign}${this.#currentGainDB.toFixed(1)} dB`;
+          this.#elements.gainReadout.hidden = false;
+        } else {
+          this.#elements.gainReadout.hidden = true;
+        }
       }
 
       if (this.#elements.meterFill) {
@@ -367,25 +531,17 @@
           // Color logic:
           // - danger when above a hard threshold (very loud)
           // - warn when above the configured limit (approaching/exceeding limit)
-          // - normal primary otherwise
+          // - normal otherwise
           const warnStart = this.#config.limitDB - 6; // 6 dB window before limit
 
           if (displayDB > -10) {
-            // Very loud: red gradient
-            this.#elements.meterFill.style.background =
-              'linear-gradient(90deg, var(--danger-color), #ff6b6b)';
+            this.#elements.meterFill.style.background = 'linear-gradient(90deg, var(--danger-color), #ff6b6b)';
           } else if (displayDB > this.#config.limitDB) {
-            // Above limit: warn -> red gradient
-            this.#elements.meterFill.style.background =
-              'linear-gradient(90deg, var(--warn-color), var(--danger-color))';
+            this.#elements.meterFill.style.background = 'linear-gradient(90deg, var(--warn-color), var(--danger-color))';
           } else if (displayDB > warnStart) {
-            // Approaching limit: subtle warn (primary -> warn)
-            this.#elements.meterFill.style.background =
-              'linear-gradient(90deg, var(--primary), var(--warn-color))';
+            this.#elements.meterFill.style.background = 'linear-gradient(90deg, var(--primary), var(--warn-color))';
           } else {
-            // Normal: primary gradient
-            this.#elements.meterFill.style.background =
-              'linear-gradient(90deg, var(--primary), var(--primary-light))';
+            this.#elements.meterFill.style.background = 'linear-gradient(90deg, var(--primary), var(--primary-light))';
           }
         } else {
           this.#elements.meterFill.style.width = '0%';
@@ -394,9 +550,9 @@
     }
 
     cleanup() {
+      if (this.#meterAnimId) cancelAnimationFrame(this.#meterAnimId);
     }
   }
 
   new Popup();
 })();
-
