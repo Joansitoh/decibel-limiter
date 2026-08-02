@@ -1,9 +1,9 @@
 /**
- * Minimal, framework-free self-check for the pure lookahead limiter (js/limiter-processor.js).
- * Run with: node js/limiter-processor.test.js
+ * Minimal, framework-free self-check for the pure lookahead limiter (extension/js/limiter-processor.js).
+ * Run with: node tests/limiter-processor.test.js
  */
 const assert = require('assert');
-const { LookaheadLimiter, resolveLimiterParams } = require('./limiter-processor.js');
+const { LookaheadLimiter, resolveLimiterParams } = require('../extension/js/limiter-processor.js');
 
 const SAMPLE_RATE = 48000;
 const BLOCK_SIZE = 128;

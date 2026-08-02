@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Decibel Limiter Logo](icons/icon128.png)
+![Decibel Limiter Logo](extension/icons/icon128.png)
 
 **Protect your hearing and control audio volume automatically in your browser**
 
@@ -202,16 +202,24 @@ We take your privacy seriously:
 
 ```
 decibel-limiter/
-├── manifest.json          # Extension configuration
-├── popup/                 # Extension popup UI
-│   ├── popup.html
+├── extension/             # Everything that ships in the packaged extension
+│   ├── manifest.json      # Extension configuration
+│   ├── popup.html         # Popup UI
 │   ├── popup.css
-│   └── popup.js
-├── content/               # Content scripts
-│   └── content.js
-├── background/            # Service worker
-│   └── background.js
-├── icons/                 # Extension icons
+│   ├── offscreen.html
+│   ├── js/
+│   │   ├── popup.js
+│   │   ├── content.js     # Content script
+│   │   ├── background.js  # Service worker
+│   │   ├── offscreen.js
+│   │   ├── limiter-processor.js
+│   │   └── localization.js
+│   ├── icons/             # Extension icons
+│   └── _locales/          # i18n messages
+├── tests/                 # Dev-only checks, not shipped in the extension
+│   ├── limiter-processor.test.js
+│   └── test-audio.html
+├── build.ps1              # Zips extension/ into a store-ready package
 └── img/                   # Documentation images
 ```
 

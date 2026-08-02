@@ -92,7 +92,7 @@ The extension follows a modular architecture with **dual-mode processing** and f
 
 ### Signal Flow
 
-Limiting runs inside an **AudioWorklet** (`js/limiter-processor.js`), on the audio rendering thread — not a main-thread `setInterval` loop. Unlike a simple analysis tap, the worklet sits directly in the signal path: it reads the input, buffers it for a few milliseconds (lookahead), computes the gain from that buffered window, and writes the gain-adjusted result to its own output. Every path still ends in a `DynamicsCompressorNode`, kept purely as a last-resort safety net.
+Limiting runs inside an **AudioWorklet** (`extension/js/limiter-processor.js`), on the audio rendering thread — not a main-thread `setInterval` loop. Unlike a simple analysis tap, the worklet sits directly in the signal path: it reads the input, buffers it for a few milliseconds (lookahead), computes the gain from that buffered window, and writes the gain-adjusted result to its own output. Every path still ends in a `DynamicsCompressorNode`, kept purely as a last-resort safety net.
 
 **Normal Mode (Content Script)**, every element gets its own limiter node (independent audio per element):
 
@@ -108,7 +108,7 @@ Tab Audio Stream → MediaStreamSource → [AudioWorkletNode: lookahead limiter]
 
 ### Lookahead Limiter
 
-A limiter that only reacts *after* seeing a loud sample always lets that sample through at full volume first — that's the "gets loud, then quickly backs off" feeling. To actually prevent audio from ever sounding louder than the ceiling, `js/limiter-processor.js` implements a **lookahead brickwall limiter** (`LookaheadLimiter`):
+A limiter that only reacts *after* seeing a loud sample always lets that sample through at full volume first — that's the "gets loud, then quickly backs off" feeling. To actually prevent audio from ever sounding louder than the ceiling, `extension/js/limiter-processor.js` implements a **lookahead brickwall limiter** (`LookaheadLimiter`):
 
 1. Incoming audio is buffered for `LOOKAHEAD_BLOCKS` render quanta (~10.7ms @48kHz) before being emitted.
 2. For each buffered block still waiting to be output, the limiter knows its peak in advance, so it can compute `requiredGain = min(target gain of every block currently in the lookahead window)`.
@@ -116,7 +116,7 @@ A limiter that only reacts *after* seeing a loud sample always lets that sample 
 4. **Release** ramps up gradually (dB/sec, per strength preset) once no louder block remains in the window.
 5. Gain is interpolated sample-by-sample across each emitted block (linear ramp from the previous applied gain), so there are no clicks — and because of the lookahead, the ramp's start and end are usually already close together by the time a loud block is actually emitted.
 
-See `LookaheadLimiter.process()` in `js/limiter-processor.js` and its self-check in `js/limiter-processor.test.js` (asserts the output literally never exceeds the ceiling, even right at a sudden peak).
+See `LookaheadLimiter.process()` in `extension/js/limiter-processor.js` and its self-check in `tests/limiter-processor.test.js` (asserts the output literally never exceeds the ceiling, even right at a sudden peak).
 
 ### Key Features
 
@@ -327,7 +327,7 @@ La extensión sigue una arquitectura modular con **procesamiento de doble modo**
 
 ### Flujo de Señal
 
-La limitación se ejecuta dentro de un **AudioWorklet** (`js/limiter-processor.js`), en el hilo de renderizado de audio — ya no en un bucle `setInterval` del hilo principal. A diferencia de un simple "tap" de análisis, el worklet está directamente en el camino de la señal: lee la entrada, la retiene en un buffer unos milisegundos (lookahead), calcula la ganancia a partir de esa ventana retenida, y escribe el resultado ya ajustado en su propia salida. Cada camino sigue terminando en un `DynamicsCompressorNode`, mantenido solo como red de seguridad de último recurso.
+La limitación se ejecuta dentro de un **AudioWorklet** (`extension/js/limiter-processor.js`), en el hilo de renderizado de audio — ya no en un bucle `setInterval` del hilo principal. A diferencia de un simple "tap" de análisis, el worklet está directamente en el camino de la señal: lee la entrada, la retiene en un buffer unos milisegundos (lookahead), calcula la ganancia a partir de esa ventana retenida, y escribe el resultado ya ajustado en su propia salida. Cada camino sigue terminando en un `DynamicsCompressorNode`, mantenido solo como red de seguridad de último recurso.
 
 **Modo Normal (Script de Contenido)**, cada elemento tiene su propio nodo limitador (audio independiente por elemento):
 
@@ -343,7 +343,7 @@ Stream Audio Pestaña → MediaStreamSource → [AudioWorkletNode: limitador con
 
 ### Limitador con Lookahead
 
-Un limitador que solo reacciona *después* de ver una muestra fuerte siempre deja pasar esa muestra a volumen completo primero — de ahí la sensación de "suena fuerte y luego rápidamente se afloja". Para evitar de verdad que el audio suene por encima del techo, `js/limiter-processor.js` implementa un **limitador brickwall con lookahead** (`LookaheadLimiter`):
+Un limitador que solo reacciona *después* de ver una muestra fuerte siempre deja pasar esa muestra a volumen completo primero — de ahí la sensación de "suena fuerte y luego rápidamente se afloja". Para evitar de verdad que el audio suene por encima del techo, `extension/js/limiter-processor.js` implementa un **limitador brickwall con lookahead** (`LookaheadLimiter`):
 
 1. El audio entrante se retiene en un buffer durante `LOOKAHEAD_BLOCKS` bloques de renderizado (~10.7ms @48kHz) antes de emitirse.
 2. Para cada bloque retenido que aún espera ser emitido, el limitador ya conoce su pico por adelantado, así que puede calcular `requiredGain = min(ganancia objetivo de cada bloque actualmente en la ventana de lookahead)`.
@@ -351,7 +351,7 @@ Un limitador que solo reacciona *después* de ver una muestra fuerte siempre dej
 4. La **recuperación** sube gradualmente (dB/seg, según el preset de fuerza) una vez que ya no queda ningún bloque más fuerte en la ventana.
 5. La ganancia se interpola muestra a muestra dentro de cada bloque emitido (rampa lineal desde la última ganancia aplicada), así que no hay clics — y gracias al lookahead, el inicio y el final de esa rampa suelen estar ya muy cerca cuando el bloque fuerte se emite realmente.
 
-Ver `LookaheadLimiter.process()` en `js/limiter-processor.js` y su self-check en `js/limiter-processor.test.js` (verifica que la salida literalmente nunca supera el techo, incluso justo en un pico repentino).
+Ver `LookaheadLimiter.process()` en `extension/js/limiter-processor.js` y su self-check en `tests/limiter-processor.test.js` (verifica que la salida literalmente nunca supera el techo, incluso justo en un pico repentino).
 
 ### Características Clave
 
