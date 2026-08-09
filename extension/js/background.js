@@ -22,10 +22,12 @@ const captureStarting = new Set();
 const lastPopupNotify = new Map();
 
 /**
- * Per-tab config stored in chrome.storage.session.
- * Persists across service worker restarts (SW is killed after ~5 s of inactivity in MV3)
- * but is cleared when the browser is closed — session-only, never written to disk.
- * Cleared individually when a tab is closed.
+ * Per-tab config stored in chrome.storage.local.
+ * `storage.session` was tempting here (it dies with the browser, which matches
+ * per-tab state) but it is also wiped whenever the extension is reloaded or
+ * updated, which made the popup reopen showing defaults while the limiter was
+ * still running — so this uses local storage and prunes dead tabs explicitly
+ * (on tab close and on startup, see pruneOrphanTabConfigs).
  *
  * When `global` is turned on, the limiter fields (everything except
  * `captureEnabled`, which is inherently per-tab) are instead read from
@@ -80,7 +82,7 @@ async function clearGlobalConfig() {
  */
 async function getTabConfig(tabId) {
   const key = tabConfigKey(tabId);
-  const data = await chrome.storage.session.get(key);
+  const data = await chrome.storage.local.get(key);
   const perTab = data[key] ?? { ...DEFAULT_CONFIG };
 
   const globalCfg = await getGlobalConfig();
@@ -91,11 +93,25 @@ async function getTabConfig(tabId) {
 }
 
 async function setTabConfig(tabId, cfg) {
-  await chrome.storage.session.set({ [tabConfigKey(tabId)]: cfg });
+  await chrome.storage.local.set({ [tabConfigKey(tabId)]: cfg });
 }
 
 async function removeTabConfig(tabId) {
-  await chrome.storage.session.remove(tabConfigKey(tabId));
+  await chrome.storage.local.remove(tabConfigKey(tabId));
+}
+
+/**
+ * Drops per-tab configs whose tab no longer exists. Tab ids are recycled by the
+ * browser, so stale entries would otherwise leak settings into unrelated tabs.
+ */
+async function pruneOrphanTabConfigs() {
+  const [all, tabs] = await Promise.all([
+    chrome.storage.local.get(null),
+    chrome.tabs.query({})
+  ]);
+  const liveKeys = new Set(tabs.map(t => tabConfigKey(t.id)));
+  const orphans = Object.keys(all).filter(k => k.startsWith('tab_cfg_') && !liveKeys.has(k));
+  if (orphans.length) await chrome.storage.local.remove(orphans);
 }
 
 const chromeAsync = {
@@ -159,6 +175,11 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
   if (reason === 'install') {
     chrome.storage.local.set({ seenWhatsNew: WHATS_NEW_VERSION });
   }
+  pruneOrphanTabConfigs().catch(() => { });
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  pruneOrphanTabConfigs().catch(() => { });
 });
 
 /**
@@ -232,7 +253,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             const global = !!msg.global;
 
             if (tabId != null) {
-              const previousCfg = await getTabConfig(tabId);
               const nextConfig = { enabled, limitDB, captureEnabled, limiterStrength, limiterFloor, limiterRelease, global };
               await setTabConfig(tabId, nextConfig);
 
@@ -263,12 +283,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
               }
 
               // Tab capture is exclusive/per-tab by nature — never driven by global mode.
-              if (captureEnabled !== !!previousCfg.captureEnabled) {
-                if (captureEnabled) {
-                  try { await startTabCapture(tabId); } catch (e) { /* ignore */ }
-                } else {
-                  try { await stopTabCapture(tabId); } catch (e) { /* ignore */ }
-                }
+              // Compare against the live capture state, not the stored config: the
+              // popup writes storage itself before sending this message, so the
+              // stored "previous" value already matches the new one.
+              const capturing = activeCaptures.has(tabId) || captureStarting.has(tabId);
+              if (captureEnabled && !capturing) {
+                try { await startTabCapture(tabId); } catch (e) { /* ignore */ }
+              } else if (!captureEnabled && capturing) {
+                try { await stopTabCapture(tabId); } catch (e) { /* ignore */ }
               } else if (captureEnabled && activeCaptures.has(tabId)) {
                 // Capture already active — propagate updated config to offscreen
                 try { await chrome.runtime.sendMessage({ type: 'update-config', config: nextConfig }); } catch (e) {}

@@ -78,6 +78,12 @@ class Limiter {
   /** @type {boolean} - Flag to prevent duplicate gesture listeners */
   #gestureListenersAdded = false;
 
+  /** @type {boolean} - Whether enhanced (tab capture) mode is on for this tab */
+  #captureEnabled = false;
+
+  /** @type {number|null} - Timer that hides the fullscreen hint toast */
+  #toastTimer = null;
+
   /**
    * Initializes the limiter: sets up listeners, scans DOM, and starts processing.
    */
@@ -86,6 +92,7 @@ class Limiter {
     this.#state = State.INITIALIZING;
 
     this.#attachGestureListeners();
+    this.#attachFullscreenListener();
     this.#setupMessaging();
     this.#requestConfig(() => {
       // After config is loaded, scan DOM and start observer
@@ -101,12 +108,14 @@ class Limiter {
    * @param {Object} config - Configuration object
    */
   updateConfig(config) {
-    const { enabled, limitDB, limiterStrength, limiterFloor, limiterRelease } = config;
+    const { enabled, limitDB, limiterStrength, limiterFloor, limiterRelease, captureEnabled } = config;
     if (typeof enabled === 'boolean') this.#config.enabled = enabled;
     if (typeof limitDB === 'number') this.#config.limitDB = limitDB;
     if (typeof limiterStrength === 'string') this.#config.limiterStrength = limiterStrength;
     if (Number.isFinite(limiterFloor)) this.#config.limiterFloor = limiterFloor;
     if (Number.isFinite(limiterRelease)) this.#config.limiterRelease = limiterRelease;
+    // Kept outside #config: the worklet only cares about limiting parameters.
+    if (typeof captureEnabled === 'boolean') this.#captureEnabled = captureEnabled;
     this.#postConfig();
   }
 
@@ -159,6 +168,51 @@ class Limiter {
     window.addEventListener('click', this.#resumeContextOnGesture, true);
     window.addEventListener('keydown', this.#resumeContextOnGesture, true);
     this.#gestureListenersAdded = true;
+  }
+
+  /**
+   * While a tab is being captured, the page's fullscreen request still
+   * succeeds — but the browser keeps its tab-sharing chrome on screen, so the
+   * video never really fills the display. There is no `fullscreenerror` to
+   * hook here (the call resolves fine); the cue is entering fullscreen at all
+   * while capture is on, so point the user at F11, which does work.
+   * @private
+   */
+  #attachFullscreenListener() {
+    document.addEventListener('fullscreenchange', () => {
+      if (document.fullscreenElement && this.#captureEnabled) this.#showFullscreenHint();
+    }, true);
+  }
+
+  /**
+   * Shows a self-contained toast. Styles are inlined so page CSS cannot
+   * restyle it, and it is mounted inside the fullscreen element when there is
+   * one — anything outside it is simply not painted while fullscreen is on.
+   * @private
+   */
+  #showFullscreenHint() {
+    const ID = 'dl-fullscreen-hint';
+    const host = document.fullscreenElement ?? document.body ?? document.documentElement;
+
+    let toast = document.getElementById(ID);
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = ID;
+      toast.textContent = chrome.i18n.getMessage('fullscreenHint');
+      toast.style.cssText = [
+        'position:fixed', 'left:50%', 'bottom:24px', 'translate:-50% 0',
+        'margin:0', 'padding:12px 18px', 'border:none', 'border-radius:10px',
+        'max-width:min(420px, 90vw)', 'background:#191a20', 'color:#eef0f5',
+        'font:500 13px/1.45 system-ui, sans-serif', 'text-align:center',
+        'box-shadow:0 8px 28px rgba(0,0,0,0.45)', 'z-index:2147483647',
+        'pointer-events:none'
+      ].join(';');
+    }
+
+    if (toast.parentElement !== host) host.appendChild(toast);
+
+    clearTimeout(this.#toastTimer);
+    this.#toastTimer = setTimeout(() => toast.remove(), 5000);
   }
 
   /**

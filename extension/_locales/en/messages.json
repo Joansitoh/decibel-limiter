@@ -142,5 +142,9 @@
   "coachmarkDone": {
     "message": "Got it",
     "description": "Button to dismiss the tour on the last step"
+  },
+  "fullscreenHint": {
+    "message": "With enhanced mode on, the player's fullscreen stays limited. Press F11 for true fullscreen.",
+    "description": "In-page notice shown when fullscreen fails because of enhanced mode"
   }
 }

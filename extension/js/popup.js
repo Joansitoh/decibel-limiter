@@ -266,11 +266,7 @@
     }
 
     async #loadConfig() {
-      const cfg = await new Promise(resolve => {
-        chrome.runtime.sendMessage({ type: 'getConfig', tabId: this.#tabId }, response => {
-          resolve(response || {});
-        });
-      });
+      const cfg = await this.#readStoredConfig();
 
       this.#config.enabled = !!cfg.enabled;
       this.#config.limitDB = Number.isFinite(cfg.limitDB) ? cfg.limitDB : this.#config.limitDB;
@@ -412,8 +408,43 @@
       tooltip.style.left = `${left}px`;
     }
 
+    /**
+     * Reads the effective config straight from storage rather than asking the
+     * service worker: in MV3 the worker is asleep most of the time, and a
+     * round-trip through it is not guaranteed to complete before the popup is
+     * torn down.
+     */
+    async #readStoredConfig() {
+      const tabKey = `tab_cfg_${this.#tabId}`;
+      const data = await chrome.storage.local.get([tabKey, 'global_config']);
+      const globalCfg = data.global_config;
+      const perTab = data[tabKey] ?? {};
+
+      if (globalCfg?.global) {
+        return { ...globalCfg, captureEnabled: perTab.captureEnabled ?? false };
+      }
+      return perTab;
+    }
+
+    /**
+     * Persists to storage first (survives the popup closing immediately after a
+     * click), then notifies the background worker so it can apply side effects:
+     * badge, content script push, and starting/stopping tab capture.
+     */
     #saveConfig() {
-      chrome.runtime.sendMessage({ type: 'setConfig', tabId: this.#tabId, ...this.#config });
+      const cfg = { ...this.#config };
+      const tabKey = `tab_cfg_${this.#tabId}`;
+
+      const writes = { [tabKey]: cfg };
+      if (cfg.global) {
+        const { captureEnabled, ...globalCfg } = cfg;
+        writes.global_config = globalCfg;
+      }
+
+      chrome.storage.local.set(writes);
+      if (!cfg.global) chrome.storage.local.remove('global_config');
+
+      chrome.runtime.sendMessage({ type: 'setConfig', tabId: this.#tabId, ...cfg });
     }
 
     #applyGlobalToggleUI() {

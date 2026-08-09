@@ -142,5 +142,9 @@
   "coachmarkDone": {
     "message": "Entendido",
     "description": "Botón para cerrar el tour en el último paso"
+  },
+  "fullscreenHint": {
+    "message": "Con el modo mejorado activo, la pantalla completa del reproductor queda limitada. Pulsa F11 para pantalla completa real.",
+    "description": "Aviso mostrado en la página cuando falla la pantalla completa por el modo mejorado"
   }
 }
