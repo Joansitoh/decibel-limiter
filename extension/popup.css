@@ -1108,6 +1108,77 @@ input[type="range"]::-webkit-slider-thumb {
   overflow: visible;
 }
 
+/* Light theme: keep the console-style buttons legible on light surfaces. */
+@media (prefers-color-scheme: light) {
+  .main-btn:not(.enabled) {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .main-btn:not(.enabled):hover {
+    background: var(--track);
+    color: var(--text);
+  }
+
+  .main-btn.enabled,
+  .main-btn.enabled:hover {
+    background: #d7a34a;
+    color: #17120a;
+  }
+
+  .mic-toggle {
+    color: var(--text);
+  }
+
+  .mic-toggle.enabled {
+    background: #d7a34a;
+    color: #17120a;
+  }
+
+  .mic-help-btn {
+    background: var(--track);
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+  .mic-help-btn:hover {
+    background: #d7a34a;
+    color: #17120a;
+  }
+
+  .info-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .info-btn:hover {
+    background: var(--track);
+    color: var(--text);
+  }
+
+  .settings-header .icon-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+  }
+
+  .preset-selector button {
+    background: var(--track);
+    color: var(--text);
+  }
+
+  .preset-selector button:hover {
+    background: var(--track-dark);
+    color: var(--text);
+  }
+
+  .preset-selector button.active {
+    background: #d7a34a;
+    color: #17120a;
+  }
+}
+
 /* Native popover for the Enhanced Mode explainer, opened by .mic-help-btn.
    Rendered in the browser's top-layer, so it can never affect popup sizing.
    Centered with a max-height + scroll instead of anchoring to the button:
