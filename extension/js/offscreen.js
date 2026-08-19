@@ -189,7 +189,7 @@ class OffscreenAudioProcessor {
    * @param {number} gainDB - Currently applied gain, in dB
    */
   sendDecibelUpdate(db, gainDB = 0) {
-    if (this.tabId) {
+    if (this.tabId != null) {
       chrome.runtime.sendMessage({
         type: 'updateDB',
         db: isFinite(db) ? db : -Infinity,

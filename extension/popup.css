@@ -360,6 +360,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
   background: var(--track);
   color: var(--primary-light);
   cursor: pointer;
+  border: none;
+  padding: 0;
   transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
 }
 
@@ -426,7 +428,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
 .icon-btn {
   width: 44px;
   background: var(--track);
-  color: var(--primary-light);
 }
 
 .icon-btn:hover {

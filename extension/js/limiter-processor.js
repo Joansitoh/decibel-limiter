@@ -63,6 +63,7 @@ class LookaheadLimiter {
     this.pending = [];
     this.activeGain = 1;
     this.lastAppliedGain = 1;
+    this.hasEmitted = false;
     this.lastDb = -Infinity;
   }
 
@@ -72,7 +73,7 @@ class LookaheadLimiter {
    * @returns {Float32Array[]|null} the delayed, gain-adjusted block to emit, or
    *   null while the lookahead buffer is still filling (caller should emit silence)
    */
-  process(block, { ceilingLin, floor, releaseDbPerBlock }) {
+  process(block, { ceilingLin, releaseDbPerBlock }) {
     let peak = 0;
     for (const channel of block) {
       for (let i = 0; i < channel.length; i++) {
@@ -82,7 +83,11 @@ class LookaheadLimiter {
     }
     this.lastDb = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
 
-    const targetGain = peak > 0 ? Math.max(floor, Math.min(1, ceilingLin / peak)) : 1;
+    // The hard ceiling takes precedence over the attack floor for extreme
+    // peaks; otherwise the configured floor could make output exceed the
+    // user's limit.
+    const ceilingGain = peak > 0 ? Math.min(1, ceilingLin / peak) : 1;
+    const targetGain = ceilingGain;
     // Copy the block before buffering: the audio thread reuses input buffers
     // between process() calls, so holding the reference would read NEW audio
     // instead of the retained samples when the block is finally emitted.
@@ -103,9 +108,11 @@ class LookaheadLimiter {
     if (this.pending.length <= this.lookaheadBlocks) return null; // still filling the lookahead buffer at startup
 
     const { block: outBlock } = this.pending.shift();
-    const startGain = this.lastAppliedGain;
+    // Avoid a unity-gain leak on the first emitted block after startup/reset.
+    const startGain = this.hasEmitted ? this.lastAppliedGain : this.activeGain;
     const endGain = this.activeGain;
     this.lastAppliedGain = endGain;
+    this.hasEmitted = true;
 
     const frames = outBlock[0].length;
     return outBlock.map(channel => {

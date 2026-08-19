@@ -108,6 +108,7 @@ class Limiter {
    * @param {Object} config - Configuration object
    */
   updateConfig(config) {
+    const wasEnabled = this.#config.enabled;
     const { enabled, limitDB, limiterStrength, limiterFloor, limiterRelease, captureEnabled } = config;
     if (typeof enabled === 'boolean') this.#config.enabled = enabled;
     if (typeof limitDB === 'number') this.#config.limitDB = limitDB;
@@ -116,6 +117,7 @@ class Limiter {
     if (Number.isFinite(limiterRelease)) this.#config.limiterRelease = limiterRelease;
     // Kept outside #config: the worklet only cares about limiting parameters.
     if (typeof captureEnabled === 'boolean') this.#captureEnabled = captureEnabled;
+    if (!wasEnabled && this.#config.enabled) this.#scanDom(document);
     this.#postConfig();
   }
 
@@ -273,7 +275,7 @@ class Limiter {
     while (walker.nextNode()) {
       const el = /** @type {HTMLMediaElement} */(walker.currentNode);
       this.#watchElement(el);
-      this.#connectElement(el);
+      if (this.#config.enabled) this.#connectElement(el);
     }
     // Recursively scan shadow DOM
     if (root.shadowRoot) safe(() => this.#scanDom(root.shadowRoot));

@@ -13,6 +13,19 @@ function makeBlock(amplitude) {
   return [new Float32Array(BLOCK_SIZE).fill(amplitude)];
 }
 
+// --- A loud signal from the first block must also respect the ceiling ---
+{
+  const limiter = new LookaheadLimiter(4);
+  const params = resolveLimiterParams({ limitDB: -20, limiterStrength: 'normal' }, SAMPLE_RATE, BLOCK_SIZE);
+  const emitted = run(limiter, new Array(8).fill(1), params);
+  let maxOutput = 0;
+  for (const block of emitted) {
+    for (let i = 0; i < block.length; i++) maxOutput = Math.max(maxOutput, Math.abs(block[i]));
+  }
+  assert.ok(maxOutput <= params.ceilingLin + 1e-6,
+    `startup output must respect the ceiling (${params.ceilingLin}), got ${maxOutput}`);
+}
+
 /** Runs a sequence of amplitudes through the limiter, collecting every emitted block. */
 function run(limiter, amplitudes, params) {
   const emitted = [];
@@ -64,12 +77,17 @@ function run(limiter, amplitudes, params) {
   }
 }
 
-// --- Gain never drops below the configured floor, even for extreme peaks ---
+// --- Extreme peaks still respect the ceiling when a floor is configured ---
 {
   const limiter = new LookaheadLimiter(4);
-  const params = resolveLimiterParams({ limitDB: -20, limiterStrength: 'strong' }, SAMPLE_RATE, BLOCK_SIZE);
-  run(limiter, [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0], params);
-  assert.ok(limiter.activeGain >= params.floor - 1e-6, `gain must never go below the configured floor (${params.floor}), got ${limiter.activeGain}`);
+  const params = resolveLimiterParams({ limitDB: -60, limiterStrength: 'soft' }, SAMPLE_RATE, BLOCK_SIZE);
+  const emitted = run(limiter, new Array(8).fill(1), params);
+  let maxOutput = 0;
+  for (const block of emitted) {
+    for (let i = 0; i < block.length; i++) maxOutput = Math.max(maxOutput, Math.abs(block[i]));
+  }
+  assert.ok(maxOutput <= params.ceilingLin + 1e-6,
+    `configured floor must not override the ceiling (${params.ceilingLin}), got ${maxOutput}`);
 }
 
 // --- Silence produces silence, unity gain ---

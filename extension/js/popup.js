@@ -127,9 +127,6 @@
 
       // Enable/disable limiter (main button)
       this.#elements.mainToggle.addEventListener('click', (e) => {
-        // If the mic toggle was clicked, ignore (mic has its own handler)
-        if (e.target.closest && e.target.closest('.mic-toggle')) return;
-
         this.#config.enabled = !this.#config.enabled;
         this.#elements.mainToggle.classList.toggle('enabled', this.#config.enabled);
         this.#elements.toggleText.textContent = chrome.i18n.getMessage(

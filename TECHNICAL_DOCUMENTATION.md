@@ -77,7 +77,7 @@ The extension follows a modular architecture with **dual-mode processing** and f
 - **State Management**: Tabs, audio levels, and settings
 - **Message Routing**: Handles communication between components
 - **Statistics**: Calculates exponential moving averages and peaks
-- **Storage**: Per-tab settings in `chrome.storage.session` (cleared per tab / on browser close); when "Apply to all sites" is on, the limiter settings instead live in `chrome.storage.local` under a single global key, persist across restarts, and are pushed to every open tab
+- **Storage**: Per-tab settings in `chrome.storage.local` are removed when a tab closes; when "Apply to all sites" is on, limiter settings live under a single global key, persist across restarts, and are pushed to every open tab
 - **Tab Capture Orchestration**: Manages offscreen document lifecycle
 
 ### Popup UI
@@ -111,9 +111,9 @@ Tab Audio Stream → MediaStreamSource → [AudioWorkletNode: lookahead limiter]
 A limiter that only reacts *after* seeing a loud sample always lets that sample through at full volume first — that's the "gets loud, then quickly backs off" feeling. To actually prevent audio from ever sounding louder than the ceiling, `extension/js/limiter-processor.js` implements a **lookahead brickwall limiter** (`LookaheadLimiter`):
 
 1. Incoming audio is buffered for `LOOKAHEAD_BLOCKS` render quanta (~10.7ms @48kHz) before being emitted.
-2. For each buffered block still waiting to be output, the limiter knows its peak in advance, so it can compute `requiredGain = min(target gain of every block currently in the lookahead window)`.
+2. For each buffered block still waiting to be output, the limiter knows its peak in advance, so it can compute the gain required to respect the configured ceiling across the lookahead window.
 3. **Attack** is instant: if a louder block is detected, gain drops immediately — before that block is actually emitted — so it never overshoots the ceiling.
-4. **Release** ramps up gradually (dB/sec, per strength preset) once no louder block remains in the window.
+4. **Release** ramps up gradually (dB/sec, per strength preset) once no louder block remains in the window. The ceiling always takes precedence over the attack-floor preference for extreme peaks.
 5. Gain is interpolated sample-by-sample across each emitted block (linear ramp from the previous applied gain), so there are no clicks — and because of the lookahead, the ramp's start and end are usually already close together by the time a loud block is actually emitted.
 
 See `LookaheadLimiter.process()` in `extension/js/limiter-processor.js` and its self-check in `tests/limiter-processor.test.js` (asserts the output literally never exceeds the ceiling, even right at a sudden peak).
@@ -130,7 +130,7 @@ See `LookaheadLimiter.process()` in `extension/js/limiter-processor.js` and its 
 
 ```javascript
 // For each incoming block, compute the gain it would need:
-targetGain = max(floor, min(1, ceilingLin / peak));
+targetGain = min(1, ceilingLin / peak);
 
 // The gain applied to the block about to be emitted already accounts for
 // every louder block still buffered ahead of it (the lookahead window):
@@ -312,7 +312,7 @@ La extensión sigue una arquitectura modular con **procesamiento de doble modo**
 - **Gestión de Estado**: Pestañas, niveles de audio y configuraciones
 - **Enrutamiento de Mensajes**: Maneja la comunicación entre componentes
 - **Estadísticas**: Calcula promedios móviles exponenciales y picos
-- **Almacenamiento**: configuración por pestaña en `chrome.storage.session` (se borra por pestaña / al cerrar el navegador); cuando "Aplicar a todas las webs" está activo, el ajuste del limitador vive en `chrome.storage.local` bajo una única clave global, persiste entre reinicios y se envía a todas las pestañas abiertas
+- **Almacenamiento**: la configuración por pestaña vive en `chrome.storage.local` y se elimina al cerrar la pestaña; cuando "Aplicar a todas las webs" está activo, el ajuste del limitador vive bajo una única clave global, persiste entre reinicios y se envía a todas las pestañas abiertas
 - **Orquestación de Captura**: Gestiona el ciclo de vida del documento offscreen
 
 ### Interfaz Emergente
@@ -346,9 +346,9 @@ Stream Audio Pestaña → MediaStreamSource → [AudioWorkletNode: limitador con
 Un limitador que solo reacciona *después* de ver una muestra fuerte siempre deja pasar esa muestra a volumen completo primero — de ahí la sensación de "suena fuerte y luego rápidamente se afloja". Para evitar de verdad que el audio suene por encima del techo, `extension/js/limiter-processor.js` implementa un **limitador brickwall con lookahead** (`LookaheadLimiter`):
 
 1. El audio entrante se retiene en un buffer durante `LOOKAHEAD_BLOCKS` bloques de renderizado (~10.7ms @48kHz) antes de emitirse.
-2. Para cada bloque retenido que aún espera ser emitido, el limitador ya conoce su pico por adelantado, así que puede calcular `requiredGain = min(ganancia objetivo de cada bloque actualmente en la ventana de lookahead)`.
+2. Para cada bloque retenido que aún espera ser emitido, el limitador ya conoce su pico por adelantado, así que puede calcular la ganancia necesaria para respetar el techo configurado en toda la ventana de lookahead.
 3. El **ataque** es instantáneo: si se detecta un bloque más fuerte, la ganancia baja de inmediato — antes de que ese bloque se emita realmente — así nunca se pasa del techo.
-4. La **recuperación** sube gradualmente (dB/seg, según el preset de fuerza) una vez que ya no queda ningún bloque más fuerte en la ventana.
+4. La **recuperación** sube gradualmente (dB/seg, según el preset de fuerza) una vez que ya no queda ningún bloque más fuerte en la ventana. El techo siempre tiene prioridad sobre la preferencia de suelo de ataque ante picos extremos.
 5. La ganancia se interpola muestra a muestra dentro de cada bloque emitido (rampa lineal desde la última ganancia aplicada), así que no hay clics — y gracias al lookahead, el inicio y el final de esa rampa suelen estar ya muy cerca cuando el bloque fuerte se emite realmente.
 
 Ver `LookaheadLimiter.process()` en `extension/js/limiter-processor.js` y su self-check en `tests/limiter-processor.test.js` (verifica que la salida literalmente nunca supera el techo, incluso justo en un pico repentino).
@@ -365,7 +365,7 @@ Ver `LookaheadLimiter.process()` en `extension/js/limiter-processor.js` y su sel
 
 ```javascript
 // Para cada bloque entrante, se calcula la ganancia que necesitaría:
-targetGain = max(floor, min(1, ceilingLin / peak));
+targetGain = min(1, ceilingLin / peak);
 
 // La ganancia aplicada al bloque que está por emitirse ya tiene en cuenta
 // cualquier bloque más fuerte que siga retenido por delante (la ventana de lookahead):

@@ -133,6 +133,10 @@ async function applyConfigToTab(tabId) {
 
   if (cfg.captureEnabled && !activeCaptures.has(tabId) && !captureStarting.has(tabId)) {
     try { await startTabCapture(tabId); } catch (e) { /* ignore */ }
+  } else if (!cfg.captureEnabled) {
+    // The worker can forget activeCaptures while the offscreen document keeps
+    // running. This idempotent stop repairs that state after worker restart.
+    try { await stopTabCapture(tabId); } catch (e) { /* ignore */ }
   }
 
   if (cfg.enabled) {
@@ -289,7 +293,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
               const capturing = activeCaptures.has(tabId) || captureStarting.has(tabId);
               if (captureEnabled && !capturing) {
                 try { await startTabCapture(tabId); } catch (e) { /* ignore */ }
-              } else if (!captureEnabled && capturing) {
+              } else if (!captureEnabled) {
                 try { await stopTabCapture(tabId); } catch (e) { /* ignore */ }
               } else if (captureEnabled && activeCaptures.has(tabId)) {
                 // Capture already active — propagate updated config to offscreen
@@ -362,7 +366,6 @@ async function startTabCapture(tabId) {
  * @param {number} tabId
  */
 async function stopTabCapture(tabId) {
-  if (!activeCaptures.has(tabId)) return;
   try {
     await chrome.runtime.sendMessage({ type: 'stop-capture', tabId });
   } catch (error) {

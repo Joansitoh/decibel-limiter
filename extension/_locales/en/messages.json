@@ -80,7 +80,7 @@
     "description": "Label for release speed slider"
   },
   "floorTooltip": {
-    "message": "Minimum gain during a peak. Lower = more aggressive limiting.",
+    "message": "Attack preference. The hard ceiling always takes priority for extreme peaks.",
     "description": "Tooltip explaining attack floor"
   },
   "releaseTooltip": {

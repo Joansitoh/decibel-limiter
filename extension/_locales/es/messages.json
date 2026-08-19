@@ -80,7 +80,7 @@
     "description": "Etiqueta para el slider de velocidad de recuperación"
   },
   "floorTooltip": {
-    "message": "Ganancia mínima durante un pico. Más bajo = limitación más agresiva.",
+    "message": "Preferencia de ataque. El techo siempre tiene prioridad ante picos extremos.",
     "description": "Tooltip explicando el suelo de ataque"
   },
   "releaseTooltip": {

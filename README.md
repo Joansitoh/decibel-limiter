@@ -213,7 +213,6 @@ decibel-limiter/
 │   │   ├── background.js  # Service worker
 │   │   ├── offscreen.js
 │   │   ├── limiter-processor.js
-│   │   └── localization.js
 │   ├── icons/             # Extension icons
 │   └── _locales/          # i18n messages
 ├── tests/                 # Dev-only checks, not shipped in the extension
