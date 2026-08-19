@@ -68,9 +68,10 @@
       const q = sel => document.querySelector(sel);
 
       this.#elements = {
-        averageDB: qs('averageDB'),
-        gainReadout: qs('gainReadout'),
-        meterFill: qs('meterFill'),
+         averageDB: qs('averageDB'),
+         gainReadout: qs('gainReadout'),
+         meterFill: qs('meterFill'),
+         meterLimitMarker: qs('meterLimitMarker'),
         limitSlider: qs('limitSlider'),
         limitValue: qs('limitValue'),
         mainToggle: qs('mainToggle'),
@@ -574,6 +575,13 @@
         } else {
           this.#elements.meterFill.style.width = '0%';
         }
+      }
+
+      if (this.#elements.meterLimitMarker) {
+        const limit = Math.max(-60, Math.min(0, this.#config.limitDB));
+        const limitPct = ((limit + 60) / 60) * 100;
+        this.#elements.meterLimitMarker.style.left = `${limitPct}%`;
+        this.#elements.meterLimitMarker.title = `Limit: ${this.#config.limitDB} dBFS`;
       }
     }
 

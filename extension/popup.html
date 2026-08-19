@@ -28,16 +28,17 @@
 
     <div class="card meter-card">
       <div class="section-header">
-        <span data-i18n="averageLevel">Average Level</span>
+          <span data-i18n="currentLevel">Current Level</span>
         <span id="averageDB" class="value">-∞ dBFS</span>
       </div>
 
       <div class="meter-bar">
         <div class="meter-fill" id="meterFill"></div>
+        <div class="meter-limit-marker" id="meterLimitMarker" aria-hidden="true"></div>
       </div>
 
       <div class="scale-markers">
-        <span>-60</span><span>-30</span><span>0 dBFS</span>
+        <span>MIN -60</span><span>-30</span><span>0 MAX</span>
       </div>
 
       <div class="gain-readout" id="gainReadout" hidden>Gain: +0.0 dB</div>
@@ -115,10 +116,10 @@
       <div class="card slider-card">
         <div class="section-header">
           <span class="label-group">
-            <span data-i18n="floorLabel">Attack floor</span>
+            <span data-i18n="floorLabel">Minimum gain</span>
             <span class="info-icon">
               <span class="material-icons">info</span>
-              <span class="tooltip" data-i18n="floorTooltip">Minimum gain during a peak. Lower = more aggressive limiting.</span>
+              <span class="tooltip" data-i18n="floorTooltip">Minimum gain kept during a peak. Lower means more aggressive limiting.</span>
             </span>
           </span>
           <span id="floorValue" class="value">0.01</span>

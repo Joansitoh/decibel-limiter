@@ -203,6 +203,7 @@ body {
 }
 
 .meter-bar {
+  position: relative;
   height: 8px;
   background: var(--track);
   border-radius: 10px;
@@ -308,6 +309,12 @@ input[type="range"]::-webkit-slider-thumb {
 
 input[type="range"]::-webkit-slider-thumb:hover {
   background: var(--primary);
+}
+
+input[type="range"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 70%, transparent);
+  outline-offset: 5px;
+  border-radius: 4px;
 }
 
 .button-row {
@@ -745,6 +752,362 @@ input[type="range"]::-webkit-slider-thumb:hover {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Console layout: a deliberate visual language for an audio utility. */
+:root {
+  --primary: #d7a34a;
+  --primary-hover: #e3b35c;
+  --primary-light: #f1c979;
+  --success-color: #7ecb91;
+  --warn-color: #e3a94d;
+  --danger-color: #e4776d;
+  --bg: #0d1117;
+  --bg-card: #151b23;
+  --bg-card-raised: #1b2430;
+  --border: #29323d;
+  --text: #edf1f5;
+  --text-dim: #8995a3;
+  --track: #252e38;
+  --track-dark: #303b47;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --primary: #9b681c;
+    --primary-hover: #825512;
+    --primary-light: #b47b28;
+    --success-color: #347d4c;
+    --warn-color: #9b681c;
+    --danger-color: #b44940;
+    --bg: #eef1f4;
+    --bg-card: #ffffff;
+    --bg-card-raised: #f8fafb;
+    --border: #d5dce3;
+    --text: #17202a;
+    --text-dim: #667382;
+    --track: #dfe5ea;
+    --track-dark: #cbd4dc;
+  }
+}
+
+body {
+  background: var(--bg);
+}
+
+.container {
+  width: 360px;
+  padding: 14px;
+  gap: 10px;
+}
+
+.header {
+  min-height: 48px;
+  padding: 0 2px 11px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-left {
+  gap: 10px;
+}
+
+.brand-link {
+  width: 34px;
+  height: 34px;
+}
+
+.header-icon {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.led {
+  right: -2px;
+  bottom: -2px;
+  width: 8px;
+  height: 8px;
+}
+
+.header-text {
+  gap: 3px;
+}
+
+.header-text h1 {
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.subtitle {
+  max-width: 270px;
+  font-size: 9px;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+}
+
+.card {
+  padding: 13px;
+  gap: 10px;
+  border-radius: 6px;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.meter-card {
+  padding: 16px 15px 14px;
+  gap: 12px;
+  border-top: 2px solid var(--primary);
+}
+
+.meter-card .section-header {
+  align-items: baseline;
+}
+
+.meter-card .section-header > span:first-child {
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.meter-card .section-header .value {
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.meter-bar {
+  height: 12px;
+  border-radius: 3px;
+  background: var(--track);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.meter-fill {
+  background: linear-gradient(90deg, var(--primary), var(--warn-color));
+  transition: width 0.1s linear, background 0.15s ease-out;
+}
+
+.meter-limit-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: 66.6667%;
+  width: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg-card) 70%, transparent);
+  pointer-events: none;
+  transform: translateX(-1px);
+  transition: left 0.12s ease-out;
+  z-index: 2;
+}
+
+.meter-limit-marker::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  background: var(--text);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.scale-markers {
+  font-size: 9px;
+}
+
+.gain-readout {
+  min-height: 13px;
+  color: var(--primary-light);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.slider-card {
+  gap: 12px;
+}
+
+.section-header {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.section-header .value {
+  font-size: 12px;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--track);
+  border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  background: var(--primary);
+  border: 2px solid var(--bg-card);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.button-row {
+  height: 40px;
+  gap: 7px;
+}
+
+.btn {
+  border-radius: 5px;
+}
+
+.main-btn {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.main-btn:not(.enabled) {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+
+.main-btn:not(.enabled):hover {
+  background: var(--track);
+}
+
+.main-btn.enabled,
+.main-btn.enabled:hover {
+  background: var(--primary);
+  color: #17120a;
+  box-shadow: none;
+  transform: none;
+}
+
+.mic-toggle {
+  top: 4px;
+  right: 5px;
+  width: 36px;
+  height: 32px;
+  border-radius: 4px;
+  background: var(--track);
+  color: var(--primary-light);
+}
+
+.mic-toggle.enabled {
+  background: color-mix(in srgb, var(--primary) 22%, var(--track));
+  color: var(--primary-light);
+  box-shadow: none;
+}
+
+.mic-help-btn {
+  right: 1px;
+  top: 0;
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+.info-btn {
+  width: 38px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+
+.info-btn:hover {
+  background: var(--track);
+  color: var(--text);
+}
+
+.footer {
+  padding-top: 2px;
+  font-size: 9px;
+  letter-spacing: 0.03em;
+}
+
+.settings-view {
+  padding: 14px;
+  gap: 10px;
+  background: var(--bg);
+}
+
+.settings-header {
+  min-height: 38px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+.settings-header .icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--track);
+  color: var(--text);
+}
+
+.settings-header .icon-btn .material-icons {
+  color: inherit;
+}
+
+.settings-header .icon-btn:hover {
+  background: var(--track-dark);
+  color: var(--primary-light);
+}
+
+.preset-selector {
+  gap: 3px;
+}
+
+.preset-selector button {
+  border-radius: 4px;
+  padding: 7px 4px;
+  background: var(--track);
+  font-size: 10px;
+}
+
+.preset-selector button.active {
+  background: var(--primary);
+  color: #17120a;
+}
+
+.switch {
+  width: 36px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.switch-knob {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.switch.active .switch-knob {
+  transform: translateX(16px);
+}
+
+.coachmark-hole {
+  border-radius: 5px;
+}
+
+.coachmark-tooltip,
+.enhanced-popover {
+  border-radius: 6px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32);
+}
+
+.enhanced-popover {
+  background: var(--bg-card-raised);
+  border-color: var(--border);
+}
+
+.meter-bar {
+  overflow: visible;
+}
+
 /* Native popover for the Enhanced Mode explainer, opened by .mic-help-btn.
    Rendered in the browser's top-layer, so it can never affect popup sizing.
    Centered with a max-height + scroll instead of anchoring to the button:
@@ -805,4 +1168,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
   font-size: 12.5px;
   line-height: 1.5;
   color: var(--text-dim);
+}
+
+/* Keep the top-layer explanation aligned with the restrained popup surfaces. */
+.enhanced-popover {
+  border-radius: 9px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
 }

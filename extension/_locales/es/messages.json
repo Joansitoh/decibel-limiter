@@ -72,16 +72,16 @@
     "description": "Etiqueta para el selector de preset"
   },
   "floorLabel": {
-    "message": "Suelo de ataque",
-    "description": "Etiqueta para el slider de suelo de ataque"
+    "message": "Ganancia mínima",
+    "description": "Etiqueta para el control de ganancia mínima durante los picos"
   },
   "releaseLabel": {
     "message": "Velocidad de recuperación",
     "description": "Etiqueta para el slider de velocidad de recuperación"
   },
   "floorTooltip": {
-    "message": "Preferencia de ataque. El techo siempre tiene prioridad ante picos extremos.",
-    "description": "Tooltip explicando el suelo de ataque"
+    "message": "Ganancia mínima que se mantiene al limitar un pico. Cuanto más bajo, más agresivo es el recorte. En picos extremos, el límite máximo tiene prioridad.",
+    "description": "Tooltip explicando la ganancia mínima del limitador"
   },
   "releaseTooltip": {
     "message": "Qué rápido recupera el volumen tras un pico. Más bajo = recuperación más lenta.",

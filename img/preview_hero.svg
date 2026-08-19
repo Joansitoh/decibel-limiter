@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Decibel Limiter keeps browser audio under control</title>
+  <desc id="desc">Promotional illustration showing a browser window, calm waveform and Decibel Limiter control panel.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111922"/><stop offset="1" stop-color="#202a2f"/></linearGradient>
+    <linearGradient id="amber" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#d59c3f"/><stop offset="1" stop-color="#f1c46b"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000" flood-opacity=".38"/></filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <circle cx="1080" cy="80" r="260" fill="#c18b35" opacity=".08"/>
+  <path d="M0 560 C170 475 250 650 420 535 S700 420 860 535 S1090 650 1280 505" fill="none" stroke="#d9a449" stroke-width="2" opacity=".3"/>
+  <path d="M0 580 C170 495 250 670 420 555 S700 440 860 555 S1090 670 1280 525" fill="none" stroke="#d9a449" stroke-width="1" opacity=".18"/>
+  <g font-family="Arial, sans-serif" fill="#f4f0e7">
+    <text x="84" y="132" font-size="18" letter-spacing="4" fill="#e2b35a">DECIBEL LIMITER</text>
+    <text x="80" y="226" font-size="64" font-weight="700">Audio under</text>
+    <text x="80" y="298" font-size="64" font-weight="700">control.</text>
+    <text x="84" y="345" font-size="21" fill="#aeb8ba">Prevent sudden volume jumps across every tab.</text>
+    <text x="84" y="414" font-size="15" letter-spacing="2" fill="#d9a449">LISTEN COMFORTABLY</text>
+  </g>
+  <g transform="translate(770 88)" filter="url(#shadow)">
+    <rect width="412" height="498" rx="14" fill="#0c1116" stroke="#475158" stroke-width="2"/>
+    <rect x="1" y="1" width="410" height="53" rx="13" fill="#172027"/>
+    <rect x="1" y="45" width="410" height="9" fill="#172027"/>
+    <rect x="24" y="16" width="25" height="25" rx="6" fill="#e09f3e"/>
+    <path d="M31 23h5v11h-5zm8-3h4v17h-4z" fill="#111820"/>
+    <text x="63" y="35" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#f3f5f2">Decibel Limiter</text>
+    <rect x="353" y="16" width="35" height="22" rx="11" fill="#7ecb91" opacity=".16"/><circle cx="362" cy="27" r="4" fill="#7ecb91"/><text x="370" y="30" font-family="Arial" font-size="8" font-weight="700" fill="#9bd9a9">ON</text>
+    <g transform="translate(22 78)">
+      <rect width="368" height="160" rx="9" fill="#151c23" stroke="#33404a"/>
+      <text x="20" y="35" font-family="Arial" font-size="12" letter-spacing="2" fill="#a8b4b8">AVERAGE LEVEL</text>
+      <text x="348" y="36" font-family="Arial" font-size="25" font-weight="700" fill="#f2f4f1" text-anchor="end">-36.9 dBFS</text>
+      <rect x="20" y="66" width="328" height="12" rx="3" fill="#27333d"/><rect x="20" y="66" width="148" height="12" rx="3" fill="url(#amber)"/>
+      <path d="M20 112h328" stroke="#42505a"/><text x="20" y="137" font-family="Arial" font-size="10" fill="#8995a3">MIN -60</text><text x="174" y="137" font-family="Arial" font-size="10" fill="#8995a3" text-anchor="middle">-30</text><text x="348" y="137" font-family="Arial" font-size="10" fill="#8995a3" text-anchor="end">0 MAX</text>
+    </g>
+    <g transform="translate(22 258)">
+      <rect width="368" height="126" rx="9" fill="#151c23" stroke="#33404a"/>
+      <text x="20" y="35" font-family="Arial" font-size="12" letter-spacing="2" fill="#a8b4b8">LIMIT</text><text x="348" y="35" font-family="Arial" font-size="16" font-weight="700" fill="#f2f4f1" text-anchor="end">-20 dBFS</text>
+      <rect x="20" y="66" width="328" height="7" rx="3" fill="#27333d"/><circle cx="237" cy="69" r="9" fill="#e0a443" stroke="#f4d17e" stroke-width="2"/>
+      <text x="20" y="99" font-family="Arial" font-size="10" fill="#8995a3">-60</text><text x="184" y="99" font-family="Arial" font-size="10" fill="#8995a3" text-anchor="middle">-30</text><text x="348" y="99" font-family="Arial" font-size="10" fill="#8995a3" text-anchor="end">0</text>
+    </g>
+    <rect x="22" y="408" width="368" height="48" rx="7" fill="url(#amber)"/><circle cx="146" cy="432" r="9" fill="none" stroke="#111820" stroke-width="2"/><path d="M146 420v12" stroke="#111820" stroke-width="2"/><text x="170" y="438" font-family="Arial" font-size="15" font-weight="700" fill="#111820">Limiter enabled</text>
+  </g>
+</svg>

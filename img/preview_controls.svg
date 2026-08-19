@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Fine tune your browser audio with Decibel Limiter</title>
+  <desc id="desc">Promotional illustration showing simple audio controls, a threshold slider and a multi-tab browser.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#111820"/><stop offset="1" stop-color="#202a2e"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#000" flood-opacity=".32"/></filter>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <path d="M0 0h1280v720H0z" fill="none" stroke="#d6a044" stroke-opacity=".1" stroke-width="2"/>
+  <g font-family="Arial, sans-serif">
+    <text x="82" y="122" font-size="17" letter-spacing="4" fill="#e0ae52">ONE CONTROL PANEL. EVERY TAB.</text>
+    <text x="78" y="222" font-size="58" font-weight="700" fill="#f5f2ea">Set it once.</text>
+    <text x="78" y="290" font-size="58" font-weight="700" fill="#f5f2ea">Enjoy the calm.</text>
+    <text x="82" y="341" font-size="20" fill="#aeb8b9">Choose your limit, tune the response, and keep browsing.</text>
+  </g>
+  <g transform="translate(690 86)" filter="url(#shadow)">
+    <path d="M0 14Q0 0 14 0H478Q492 0 492 14V486Q492 500 478 500H14Q0 500 0 486Z" fill="#0e1419" stroke="#465057" stroke-width="2"/>
+    <path d="M1 14Q1 1 14 1H478Q491 1 491 14V52H1Z" fill="#192229"/>
+    <circle cx="25" cy="26" r="6" fill="#d5584d"/><circle cx="45" cy="26" r="6" fill="#d8a44c"/><circle cx="65" cy="26" r="6" fill="#72b77e"/>
+    <rect x="100" y="16" width="245" height="20" rx="10" fill="#29343b"/>
+    <g font-family="Arial, sans-serif">
+      <text x="26" y="90" font-size="14" font-weight="700" fill="#f5f2ea">Audio settings</text>
+      <text x="26" y="122" font-size="11" letter-spacing="2" fill="#89969a">LIMIT PRESET</text>
+      <rect x="26" y="141" width="440" height="48" rx="8" fill="#202b31"/><rect x="26" y="141" width="133" height="48" rx="8" fill="#d7a044"/>
+      <text x="92" y="171" text-anchor="middle" font-size="13" font-weight="700" fill="#172027">Soft</text><text x="246" y="171" text-anchor="middle" font-size="13" fill="#aeb8b9">Normal</text><text x="396" y="171" text-anchor="middle" font-size="13" fill="#aeb8b9">Strong</text>
+      <text x="26" y="245" font-size="11" letter-spacing="2" fill="#89969a">THRESHOLD</text><text x="466" y="245" text-anchor="end" font-size="18" font-weight="700" fill="#f5f2ea">-20 dBFS</text>
+      <rect x="26" y="274" width="440" height="8" rx="4" fill="#2a363d"/><rect x="26" y="274" width="267" height="8" rx="4" fill="#d7a044"/><circle cx="293" cy="278" r="11" fill="#172027" stroke="#e3b45e" stroke-width="3"/>
+      <text x="26" y="315" font-size="11" fill="#89969a">-60</text><text x="246" y="315" text-anchor="middle" font-size="11" fill="#89969a">-30</text><text x="466" y="315" text-anchor="end" font-size="11" fill="#89969a">0</text>
+      <rect x="26" y="355" width="440" height="74" rx="8" fill="#151e24" stroke="#334149"/><circle cx="54" cy="392" r="14" fill="#d7a044" opacity=".2"/><path d="M54 383v18M46 392h16" stroke="#e3b45e" stroke-width="2"/>
+      <text x="82" y="388" font-size="14" font-weight="700" fill="#f5f2ea">Apply to all sites</text><text x="82" y="408" font-size="11" fill="#89969a">Keep the same limit on every tab</text>
+      <rect x="407" y="380" width="39" height="22" rx="11" fill="#d7a044"/><circle cx="435" cy="391" r="8" fill="#172027"/>
+    </g>
+  </g>
+</svg>
