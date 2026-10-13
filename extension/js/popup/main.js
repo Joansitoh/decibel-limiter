@@ -140,25 +140,6 @@ class Popup {
       this.elements.captureError.hidden = false;
       this.elements.captureError.textContent = chrome.i18n.getMessage('captureFallback') || cfg.captureError;
     }
-    if (this.config.enabled) {
-      const resp = await persistConfig(this.tabId, this.config, this.host);
-      if (!resp) return;
-      this.captureActive = !!resp.captureActive;
-      this.host = resp.host || this.host;
-      this.domainSaved = !!resp.domainSaved;
-      if (resp.audioPath && resp.audioPath !== this.config.audioPath) {
-        this.config.audioPath = resp.audioPath;
-        this.config.captureEnabled = !!resp.captureEnabled;
-        applyPathUI(this.elements, this.config, this.captureActive);
-        updatePathSelector(this.elements, this.config.audioPath);
-      }
-      applyStatusLine(this.elements, this.statusArgs(), true);
-      applyDomainChip(this.elements, {
-        host: this.host,
-        domainSaved: this.domainSaved,
-        global: this.config.global
-      });
-    }
   }
 
   async saveConfig() {
@@ -265,8 +246,13 @@ class Popup {
 
     el.pathToggle.addEventListener('click', e => {
       e.stopPropagation();
-      const hq = wantsCapture(this.config);
-      this.config.audioPath = hq ? 'element' : 'capture';
+      if (wantsCapture(this.config) && !this.captureActive) {
+        // Tab wants HQ but another tab holds it. Clicking claims HQ for this tab!
+        this.config.audioPath = 'capture';
+      } else {
+        const hq = wantsCapture(this.config);
+        this.config.audioPath = hq ? 'element' : 'capture';
+      }
       this.config.captureEnabled = wantsCapture(this.config);
       applyPathUI(el, this.config, this.captureActive);
       updatePathSelector(el, this.config.audioPath);

@@ -23,7 +23,8 @@ function assert(cond, msg) {
   }
 }
 
-const presets = require(path.join(extJs, 'presets.js'));
+await import(pathToFileURL(path.join(extJs, 'presets.js')).href);
+const presets = globalThis.DLPresets;
 assert(presets.wantsCapture({ enabled: true, audioPath: 'capture' }) === true, 'wantsCapture capture');
 assert(presets.wantsCapture({ enabled: false, audioPath: 'capture' }) === false, 'wantsCapture off');
 assert(presets.hostFromUrl('https://www.youtube.com/watch?v=1') === 'youtube.com', 'host strips www');
@@ -156,22 +157,32 @@ const cfgC = await sandbox.__storage.getTabConfig(3);
 assert(cfgC.enabled === true, 'new tab inherits domain enabled');
 
 const owner = await sandbox.__capture.pickHqOwner(2);
-assert(owner === 2, `focused preferTabId wins HQ (got ${owner})`);
+assert(owner === 2, `preferTabId wins HQ when no active capture (got ${owner})`);
 
 const ownerAudible = await sandbox.__capture.pickHqOwner(null);
 assert(ownerAudible === 1, `without prefer, audible tab wins (got ${ownerAudible})`);
 
+// Setup active capture on Tab 1
+sandbox.__capture.activeCaptures.set(1, { streamId: 'stream-1' });
 captureCalls.length = 0;
 chrome.tabs._tabs.get(1).active = false;
 chrome.tabs._tabs.get(2).active = true;
-await sandbox.__capture.rebalanceCaptures(2);
-assert(sandbox.__capture.activeCaptures.has(2), 'rebalance captures focused tab');
-assert(!sandbox.__capture.activeCaptures.has(1), 'rebalance releases background capture');
+
+// Passive rebalance on Tab 2 (e.g. switching tabs / onActivated)
+await sandbox.__capture.rebalanceCaptures(2, { force: false });
+assert(sandbox.__capture.activeCaptures.has(1), 'passive rebalance keeps active capture on tab 1');
+assert(!sandbox.__capture.activeCaptures.has(2), 'passive rebalance does not steal capture to tab 2');
+assert(chrome.action.badges.get(2) === 'ON', `badge ON on tab 2 while tab 1 holds HQ (got "${chrome.action.badges.get(2)}")`);
+
+// Explicit user action on Tab 2 (e.g. button click / setConfig / force: true)
+await sandbox.__capture.rebalanceCaptures(2, { force: true });
+assert(sandbox.__capture.activeCaptures.has(2), 'forced rebalance transfers capture to tab 2 on user button press');
+assert(!sandbox.__capture.activeCaptures.has(1), 'forced rebalance releases tab 1 capture');
 assert(
   captureCalls.some(c => c.type === 'getMediaStreamId' && c.targetTabId === 2),
   'getMediaStreamId requested for focused tab'
 );
-assert(chrome.action.badges.get(2) === 'HQ', `badge HQ on focused tab (got "${chrome.action.badges.get(2)}")`);
+assert(chrome.action.badges.get(2) === 'HQ', `badge HQ on tab 2 after user action (got "${chrome.action.badges.get(2)}")`);
 
 const domainBefore = chrome.storage.local._data.domain_configs['youtube.com'].audioPath;
 chrome.tabCapture.getMediaStreamId = async () => { throw new Error('no gesture'); };

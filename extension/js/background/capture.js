@@ -42,11 +42,29 @@ async function pushConfigToTab(tabId, cfg, extra = {}) {
 
 /**
  * Pick the single Best-quality owner among tabs that want capture.
- * If preferTabId is set (user focused that tab), it wins when it wants HQ —
- * otherwise background "audible" would keep capture and the focused tab stays bare
- * until the popup is opened.
+ * If force is true and preferTabId is set (user clicked a button in popup / shortcut), it wins.
+ * Otherwise, if a tab already has active capture and still wants HQ, it KEEPS it
+ * so that switching tabs or opening new tabs does not disrupt the currently playing audio.
  */
-async function pickHqOwner(preferTabId = null) {
+async function pickHqOwner(preferTabId = null, { force = false } = {}) {
+  if (force && preferTabId != null) {
+    try {
+      const preferCfg = await getTabConfig(preferTabId);
+      if (self.DLPresets.wantsCapture(preferCfg)) return preferTabId;
+    } catch (_) { /* tab gone */ }
+  }
+
+  // Preserve existing active capture if the tab is still alive and wants capture
+  for (const activeTabId of activeCaptures.keys()) {
+    try {
+      await chrome.tabs.get(activeTabId);
+      const activeCfg = await getTabConfig(activeTabId);
+      if (self.DLPresets.wantsCapture(activeCfg)) {
+        return activeTabId;
+      }
+    } catch (_) { /* tab closed or gone */ }
+  }
+
   if (preferTabId != null) {
     try {
       const preferCfg = await getTabConfig(preferTabId);
@@ -95,8 +113,8 @@ async function fallbackCaptureToElement(tabId, cfg, err, { permanent = false } =
  * Exclusive Best quality: at most one tabCapture.
  * Other enabled tabs that prefer HQ stay protected via element path (soft handoff).
  */
-async function rebalanceCaptures(preferTabId = null) {
-  const owner = await pickHqOwner(preferTabId);
+async function rebalanceCaptures(preferTabId = null, { force = false } = {}) {
+  const owner = await pickHqOwner(preferTabId, { force });
 
   for (const id of [...activeCaptures.keys()]) {
     if (id !== owner) {
@@ -139,10 +157,10 @@ async function rebalanceCaptures(preferTabId = null) {
   await pushConfigToTab(owner, cfg);
 }
 
-async function applyConfigToTab(tabId) {
+async function applyConfigToTab(tabId, { force = false } = {}) {
   const cfg = await getTabConfig(tabId);
   if (self.DLPresets.wantsCapture(cfg)) {
-    await rebalanceCaptures(tabId);
+    await rebalanceCaptures(tabId, { force });
     return;
   }
   if (activeCaptures.has(tabId)) {

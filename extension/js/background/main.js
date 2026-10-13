@@ -55,7 +55,7 @@ chrome.runtime.onStartup.addListener(() => {
 async function hydrateActiveTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-    if (tab?.id != null) await applyConfigToTab(tab.id);
+    if (tab?.id != null) await applyConfigToTab(tab.id, { force: false });
   } catch (err) {
     console.warn('hydrateActiveTab', err);
   }
@@ -145,7 +145,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             captureActive: activeCaptures.has(tabId)
           });
           // Badge + capture/element after responding (avoid racing the content getConfig path)
-          applyConfigToTab(tabId).catch(err =>
+          applyConfigToTab(tabId, { force: false }).catch(err =>
             console.warn('pageReady apply failed', err)
           );
           break;
@@ -277,7 +277,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             if (nextConfig.global) {
               const { captureEnabled: _c, ...globalCfg } = nextConfig;
               await setGlobalConfig({ ...globalCfg, global: true });
-              await rebalanceCaptures(tabId);
+              await rebalanceCaptures(tabId, { force: true });
               const tabs = await chrome.tabs.query({});
               await Promise.all(tabs.map(async t => {
                 if (t.id === tabId) return;
@@ -294,7 +294,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 resolveHost(msg.host, null) || (await tabHost(tabId));
               if (host) await setDomainConfig(host, nextConfig);
               if (wantsCapture(nextConfig)) {
-                await rebalanceCaptures(tabId);
+                await rebalanceCaptures(tabId, { force: true });
               } else {
                 if (activeCaptures.has(tabId)) {
                   try { await stopTabCapture(tabId); } catch (_) { /* ignore */ }
@@ -330,7 +330,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             const host = await tabHost(tabId);
             if (host) await setDomainConfig(host, merged);
           }
-          await applyConfigToTab(tabId);
+          await applyConfigToTab(tabId, { force: true });
           sendResponse({ success: true, scenario: next });
           break;
         }
@@ -347,7 +347,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             const { captureEnabled: _c, ...g } = next;
             await setGlobalConfig({ ...g, global: true });
           }
-          await applyConfigToTab(tabId);
+          await applyConfigToTab(tabId, { force: true });
           sendResponse({ success: true, enabled: next.enabled });
           break;
         }
@@ -376,7 +376,7 @@ chrome.commands?.onCommand?.addListener(async (command) => {
       const { captureEnabled: _c, ...g } = next;
       await setGlobalConfig({ ...g, global: true });
     }
-    await applyConfigToTab(tabId);
+    await applyConfigToTab(tabId, { force: true });
   } else if (command === 'cycle-scenario') {
     const order = ['night', 'balanced', 'social', 'music'];
     const cfg = await getTabConfig(tabId);
@@ -389,7 +389,7 @@ chrome.commands?.onCommand?.addListener(async (command) => {
       const host = await tabHost(tabId);
       if (host) await setDomainConfig(host, merged);
     }
-    await applyConfigToTab(tabId);
+    await applyConfigToTab(tabId, { force: true });
   }
 });
 
@@ -415,8 +415,8 @@ chrome.tabs.onActivated.addListener(activeInfo => {
     if (cfg.enabled || wantsCapture(cfg)) {
       await setTabConfig(tabId, cfg);
     }
-    // Same path as setConfig — badge + capture/element soft-handoff
-    await applyConfigToTab(tabId);
+    // Same path as setConfig — badge + capture/element soft-handoff (passive, do not steal active capture)
+    await applyConfigToTab(tabId, { force: false });
   })().catch(err => console.warn('onActivated apply failed', err));
 });
 
@@ -430,9 +430,9 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
       await rebalanceCaptures(null);
       return;
     }
-    // Audible tab that wants HQ should reclaim Best quality
+    // Audible tab that wants HQ should reclaim Best quality if no tab is currently capturing
     if (typeof changeInfo.audible === 'boolean') {
-      await rebalanceCaptures(changeInfo.audible ? tabId : null);
+      await rebalanceCaptures(changeInfo.audible ? tabId : null, { force: false });
       return;
     }
     if (changeInfo.status !== 'complete' && !changeInfo.url) return;
@@ -445,6 +445,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
         if (cfg.enabled || wantsCapture(cfg)) await setTabConfig(tabId, cfg);
       }
     }
-    await applyConfigToTab(tabId);
+    await applyConfigToTab(tabId, { force: false });
   } catch (_) { /* ignore */ }
 });

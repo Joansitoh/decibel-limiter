@@ -127,10 +127,12 @@ class LookaheadLimiter {
   }
 }
 
-// Exported for the plain-Node unit test. Harmless in the AudioWorkletGlobalScope,
-// where `module` is undefined and this branch is simply never taken.
-if (typeof module !== 'undefined') {
+// Exported for the plain-Node unit test. Harmless in the AudioWorkletGlobalScope.
+if (typeof module !== 'undefined' && module.exports) {
   module.exports = { LIMITER_PRESETS, LOOKAHEAD_BLOCKS, resolveLimiterParams, LookaheadLimiter };
+}
+if (typeof globalThis !== 'undefined') {
+  globalThis.DLLimiterProcessor = { LIMITER_PRESETS, LOOKAHEAD_BLOCKS, resolveLimiterParams, LookaheadLimiter };
 }
 
 // `AudioWorkletProcessor`/`registerProcessor`/`sampleRate` only exist inside an

@@ -142,8 +142,7 @@
     wantsCapture,
     migrateConfig,
     normalizeHost,
-    hostFromUrl,
-    normalizeHost
+    hostFromUrl
   };
 
   root.DLPresets = api;
