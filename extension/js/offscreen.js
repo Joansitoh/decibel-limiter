@@ -1,113 +1,97 @@
 /**
- * @file Offscreen document for tab audio capture and processing
+ * @file Offscreen document — Best quality (tabCapture) path
  * @module OffscreenAudioProcessor
  */
 
-/**
- * Handles tab-level audio capture and processing for enhanced mode.
- * Uses Chrome's tabCapture API to process audio from streaming services.
- *
- * The actual limiting (lookahead peak detection + gain) happens inside an
- * AudioWorklet (js/limiter-processor.js), sitting directly in the audio graph
- * on the audio rendering thread — not a main-thread setInterval loop feeding
- * a separate GainNode. A native DynamicsCompressorNode acts as a safety net
- * in case a fast transient still sneaks through.
- */
 const SAFETY_COMPRESSOR = Object.freeze({ threshold: -3, knee: 0, ratio: 20, attack: 0.003, release: 0.25 });
+
+const LEVELING_PROFILES = Object.freeze({
+  night: { threshold: -35, knee: 6, ratio: 8, attack: 0.005, release: 0.5, makeup: 1.5 },
+  balanced: { threshold: -28, knee: 12, ratio: 4, attack: 0.02, release: 0.3, makeup: 1.2 },
+  social: { threshold: -45, knee: 4, ratio: 12, attack: 0.003, release: 0.2, makeup: 2.2 }
+});
 
 class OffscreenAudioProcessor {
   constructor() {
-    /** @type {AudioContext|null} - Web Audio API context */
     this.audioContext = null;
-
-    /** @type {MediaStream|null} - Captured media stream from tab */
     this.mediaStream = null;
-
-    /** @type {AudioWorkletNode|null} - Lookahead limiter node */
     this.limiterNode = null;
-
-    /** @type {DynamicsCompressorNode|null} - Safety net after the limiter */
+    this.levelingCompressor = null;
+    this.makeupGain = null;
     this.safetyCompressor = null;
-
-    /** @type {MediaStreamAudioSourceNode|null} - Audio source node */
     this.sourceNode = null;
-
-    /** @type {boolean} - Processing state flag */
     this.isProcessing = false;
-
-    /** @type {Object} - Limiter configuration */
-    this.config = { enabled: false, limitDB: -20, limiterStrength: 'normal' };
-
-    /** @type {number|null} - Current tab ID being processed */
+    this.config = {
+      enabled: false,
+      limitDB: -20,
+      limiterStrength: 'normal',
+      levelingEnabled: false,
+      levelingProfile: null
+    };
     this.tabId = null;
-
     this.setupMessageListener();
   }
 
-  /**
-   * Sets up message listener for communication with background script.
-   */
   setupMessageListener() {
-    chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-      try {
-        switch (message.type) {
-          case 'start-capture':
-            await this.startCapture(message.streamId, message.tabId);
-            sendResponse({ success: true });
-            break;
-          case 'stop-capture':
-            if (message.tabId == null || message.tabId === this.tabId) {
-              this.stopCapture();
-            }
-            sendResponse({ success: true });
-            break;
-          case 'update-config':
-            this.updateConfig(message.config);
-            sendResponse({ success: true });
-            break;
-          case 'get-status':
-            sendResponse({
-              isProcessing: this.isProcessing,
-              hasAudio: !!this.mediaStream
-            });
-            break;
+    // Must return true *synchronously* so sendResponse stays valid after awaits.
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      (async () => {
+        try {
+          switch (message.type) {
+            case 'start-capture':
+              await this.startCapture(message.streamId, message.tabId, message.config);
+              sendResponse({ success: true });
+              break;
+            case 'stop-capture':
+              if (message.tabId == null || message.tabId === this.tabId) {
+                this.stopCapture();
+              }
+              sendResponse({ success: true });
+              break;
+            case 'update-config':
+              this.updateConfig(message.config);
+              sendResponse({ success: true });
+              break;
+            case 'get-status':
+              sendResponse({ isProcessing: this.isProcessing, hasAudio: !!this.mediaStream });
+              break;
+            default:
+              break;
+          }
+        } catch (error) {
+          console.error('Offscreen message handler error:', error);
+          sendResponse({ error: error.message || String(error) });
         }
-      } catch (error) {
-        console.error('Offscreen message handler error:', error);
-        sendResponse({ error: error.message });
-      }
+      })();
       return true;
     });
   }
 
-  /**
-   * Starts audio capture from a tab using the provided stream ID.
-   * @param {string} streamId - Chrome tab capture stream ID
-   * @param {number} tabId - Tab ID to capture audio from
-   * @returns {Promise<void>}
-   * @throws {Error} If capture fails to start
-   */
-  async startCapture(streamId, tabId) {
+  async startCapture(streamId, tabId, config) {
     try {
       if (this.isProcessing || this.mediaStream || this.audioContext) {
         this.stopCapture();
       }
 
       this.tabId = tabId;
+      if (config && typeof config === 'object') {
+        this.config = { ...this.config, ...config };
+      }
 
-      // Obtain media stream using Chrome's tabCapture API
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           mandatory: {
-            chromeMediaSource: "tab",
-            chromeMediaSourceId: streamId,
-          },
-        },
+            chromeMediaSource: 'tab',
+            chromeMediaSourceId: streamId
+          }
+        }
       });
 
-      // Initialize Web Audio API context and processing nodes
       this.audioContext = new AudioContext();
       this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
+
+      this.levelingCompressor = this.audioContext.createDynamicsCompressor();
+      this.makeupGain = this.audioContext.createGain();
       this.safetyCompressor = this.audioContext.createDynamicsCompressor();
       Object.entries(SAFETY_COMPRESSOR).forEach(([k, v]) => { this.safetyCompressor[k].value = v; });
 
@@ -115,15 +99,16 @@ class OffscreenAudioProcessor {
       this.limiterNode = new AudioWorkletNode(this.audioContext, 'limiter-processor');
       this.limiterNode.port.onmessage = event => this.#handleMeter(event.data);
 
-      // source → lookahead limiter (in-place) → safety compressor → destination
-      this.sourceNode.connect(this.limiterNode);
+      // source → leveling → makeup → lookahead → safety → dest
+      this.sourceNode.connect(this.levelingCompressor);
+      this.levelingCompressor.connect(this.makeupGain);
+      this.makeupGain.connect(this.limiterNode);
       this.limiterNode.connect(this.safetyCompressor);
       this.safetyCompressor.connect(this.audioContext.destination);
 
       this.isProcessing = true;
       this.#postConfig();
-
-      // Tab audio capture started successfully
+      this.#applyLeveling();
     } catch (error) {
       console.error('Failed to start tab capture:', error);
       this.stopCapture();
@@ -131,63 +116,58 @@ class OffscreenAudioProcessor {
     }
   }
 
-  /**
-   * Stops audio capture and cleans up all resources.
-   */
   stopCapture() {
     this.isProcessing = false;
-
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
       this.mediaStream = null;
     }
-
     if (this.audioContext) {
       this.audioContext.close();
       this.audioContext = null;
     }
-
     this.sourceNode = null;
     this.limiterNode = null;
+    this.levelingCompressor = null;
+    this.makeupGain = null;
     this.safetyCompressor = null;
     this.tabId = null;
-    // Tab audio capture stopped
   }
 
-  /**
-   * Updates the limiter configuration.
-   * @param {Object} newConfig - New configuration object
-   */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
     this.#postConfig();
+    this.#applyLeveling();
   }
 
-  /**
-   * Sends the current configuration to the limiter node, once it's ready.
-   * @private
-   */
+  #applyLeveling() {
+    if (!this.levelingCompressor || !this.makeupGain) return;
+    const profile = this.config.levelingEnabled
+      ? LEVELING_PROFILES[this.config.levelingProfile]
+      : null;
+    if (!profile) {
+      this.levelingCompressor.threshold.value = 0;
+      this.levelingCompressor.ratio.value = 1;
+      this.makeupGain.gain.value = 1;
+      return;
+    }
+    this.levelingCompressor.threshold.value = profile.threshold;
+    this.levelingCompressor.knee.value = profile.knee;
+    this.levelingCompressor.ratio.value = profile.ratio;
+    this.levelingCompressor.attack.value = profile.attack;
+    this.levelingCompressor.release.value = profile.release;
+    this.makeupGain.gain.value = profile.makeup;
+  }
+
   #postConfig() {
     if (!this.limiterNode) return;
     this.limiterNode.port.postMessage({ type: 'config', config: this.config });
   }
 
-  /**
-   * Forwards the decibel/gain reading reported by the limiter node to the background script.
-   * The worklet already throttles its own reports (~40Hz); forwarding each one
-   * keeps the popup's meter smooth.
-   * @private
-   * @param {{db: number, gain: number}} analysis
-   */
   #handleMeter({ db, gain }) {
     this.sendDecibelUpdate(db, gain > 0 ? 20 * Math.log10(gain) : 0);
   }
 
-  /**
-   * Sends decibel level update to background script.
-   * @param {number} db - Current decibel level
-   * @param {number} gainDB - Currently applied gain, in dB
-   */
   sendDecibelUpdate(db, gainDB = 0) {
     if (this.tabId != null) {
       chrome.runtime.sendMessage({
@@ -197,8 +177,7 @@ class OffscreenAudioProcessor {
         tabId: this.tabId,
         source: 'offscreen'
       }).catch(error => {
-        // Ignore errors when popup is closed
-        if (!error.message.includes('Receiving end does not exist')) {
+        if (!error.message?.includes('Receiving end does not exist')) {
           console.error('Failed to send decibel update:', error);
         }
       });
@@ -206,10 +185,5 @@ class OffscreenAudioProcessor {
   }
 }
 
-// Initialize the offscreen audio processor instance
 const processor = new OffscreenAudioProcessor();
-
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-  processor.stopCapture();
-});
+window.addEventListener('beforeunload', () => { processor.stopCapture(); });

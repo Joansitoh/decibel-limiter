@@ -1,1 +1,12 @@
 dist/
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Large local fixture (keep on disk for e2e; don't commit)
+tests/videoplayback.mp4
+
+# PowerShell oops: "$_.FullName" appends literal ".FullName" to the path
+*.FullName

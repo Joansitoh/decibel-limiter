@@ -1,17 +1,18 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extensionName__",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "__MSG_extensionDescription__",
   "default_locale": "en",
   "permissions": [
     "storage",
+    "downloads",
     "activeTab",
     "tabCapture",
     "offscreen"
   ],
   "background": {
-    "service_worker": "js/background.js"
+    "service_worker": "js/background/main.js"
   },
   "action": {
     "default_popup": "popup.html",
@@ -20,6 +21,20 @@
       "32": "icons/icon32.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
+    }
+  },
+  "commands": {
+    "toggle-enabled": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "__MSG_commandToggleEnabled__"
+    },
+    "cycle-scenario": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
+      "description": "__MSG_commandCycleScenario__"
     }
   },
   "icons": {

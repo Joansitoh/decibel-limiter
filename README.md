@@ -36,16 +36,18 @@ Perfect for night browsing, shared workspaces, or anyone who values their hearin
 ## ✨ Key Features
 
 ### 🎯 Core Functionality
-- **🔄 Real Lookahead Limiting** - Buffers a few milliseconds of audio so gain is already ducked *before* a loud transient reaches your speakers, instead of reacting after the fact
-- **📊 Live Audio Monitoring** - Visual feedback showing current audio level and the live applied gain reduction (dB)
-- **🎚️ Customizable Threshold** - Fine-tune your limit anywhere between 0 and -60 dBFS
-- **🌐 Apply to All Sites** - Optionally persist your setting so it stays active on every site/tab you open, instead of per-tab only
-- **🔖 Per-Tab Control** - Or configure each tab independently for maximum flexibility
+- **🔄 Real Lookahead Limiting** - Buffers a few milliseconds of audio so gain is already ducked *before* a loud transient reaches your speakers
+- **🏆 Best quality by default** - Tab capture path so peaks are stopped before you hear them (Fullscreen-friendly fallback available)
+- **🌙 Scenario presets** - Night, Balanced, Social, Music — plus optional leveling (off for Music)
+- **🔖 Per-site memory** - Remembers settings per domain (or apply one setting to all sites)
+- **📊 Live Audio Monitoring** - Meter + live gain reduction readout
+- **🎚️ Customizable Threshold** - Fine-tune between 0 and -60 dBFS in Settings
 
 ### 🎨 User Experience
-- **📈 Intuitive Interface** - Studio-style dark UI with real-time volume meter visualization
-- **⚡ Lightweight & Fast** - Audio-thread processing (AudioWorklet) for minimal impact on browser performance
-- **🔒 Privacy-Focused** - All processing happens locally, no data collection
+- **📈 Clear interface** - Scenarios first; advanced limiter controls in Settings
+- **⌨️ Shortcuts** - Alt+Shift+D toggle, Alt+Shift+S cycle scenario
+- **⚡ Lightweight & Fast** - AudioWorklet on the audio thread
+- **🔒 Privacy-Focused** - All processing local, no data collection, export/import settings
 
 ### 🌐 Compatibility
 - **Popular Streaming Sites** - Works flawlessly with Netflix, YouTube, Spotify, and more
@@ -215,10 +217,11 @@ decibel-limiter/
 │   ├── popup.css
 │   ├── offscreen.html
 │   ├── js/
-│   │   ├── popup.js
-│   │   ├── content.js     # Content script
-│   │   ├── background.js  # Service worker
+│   │   ├── background/    # Service worker (main, storage, capture)
+│   │   ├── popup/         # Popup UI modules
+│   │   ├── content.js
 │   │   ├── offscreen.js
+│   │   ├── presets.js
 │   │   ├── limiter-processor.js
 │   ├── icons/             # Extension icons
 │   └── _locales/          # i18n messages
@@ -281,10 +284,13 @@ We welcome contributions from the community! Here's how you can help:
 
 - [x] Support for more streaming platforms
 - [x] Multi-language support
-- [ ] Compression/normalization options
-- [ ] Export/import settings
-- [ ] Audio presets for different scenarios
-- [ ] Keyboard shortcuts
+- [x] Compression/leveling options (scenario-based)
+- [x] Export/import settings
+- [x] Audio presets for different scenarios (Night / Balanced / Social / Music)
+- [x] Keyboard shortcuts
+- [x] Best-quality (enhanced) path as default
+- [x] Per-domain memory
+- [ ] More locales / parental lock (if demanded)
 
 ## 📊 Statistics
 

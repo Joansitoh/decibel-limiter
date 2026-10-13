@@ -155,16 +155,14 @@
 
   <h1>🔊 Decibel Limiter — Test Page</h1>
 
-  <!-- Hidden <audio> element. The Web Audio output is routed here via
-       MediaStreamAudioDestinationNode so the extension's content script
-       (normal mode) can intercept it with createMediaElementSource. -->
-  <audio id="proxyAudio" autoplay style="display:none"></audio>
+  <!-- Hidden <audio> plays a looping WAV blob so the content script can
+       intercept via createMediaElementSource (MediaStream srcObject is flaky). -->
+  <audio id="proxyAudio" loop crossorigin="anonymous" style="display:none"></audio>
 
   <div class="info-box" style="max-width:480px;width:100%">
-    💡 <strong>Modo normal</strong> (sin Enhanced): el content script intercepta el elemento
-    <code>&lt;audio&gt;</code> oculto al que se routea la salida. Activa el limitador y sube
-    el volumen base para verlo actuar.<br/>
-    🎤 <strong>Modo enhanced</strong> (Enhanced Mode activo): intercepta toda la pestaña.
+    El <code>&lt;audio&gt;</code> oculto reproduce un WAV de ruido (path elemento).
+    Activa el limitador en la extensión para ver metering / limitación.
+    Best quality (tabCapture) cubre toda la pestaña cuando el navegador lo permite.
   </div>
 
   <div class="card">
@@ -234,11 +232,39 @@
     let noiseSource = null;
     let noiseGainNode = null;
     let analyserNode = null;
-    let streamDestNode = null;   // MediaStreamAudioDestinationNode → <audio> element
     let rafId = null;
     let running = false;
+    let blobUrl = null;
 
     const proxyAudio = document.getElementById('proxyAudio');
+
+    /** Encode mono Float32 PCM as a looping WAV for <audio src>. */
+    function floatToWavBlob(float32, sampleRate) {
+      const n = float32.length;
+      const buffer = new ArrayBuffer(44 + n * 2);
+      const view = new DataView(buffer);
+      const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+      writeStr(0, 'RIFF');
+      view.setUint32(4, 36 + n * 2, true);
+      writeStr(8, 'WAVE');
+      writeStr(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeStr(36, 'data');
+      view.setUint32(40, n * 2, true);
+      let off = 44;
+      for (let i = 0; i < n; i++) {
+        const s = Math.max(-1, Math.min(1, float32[i]));
+        view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        off += 2;
+      }
+      return new Blob([buffer], { type: 'audio/wav' });
+    }
 
     // ── UI refs ────────────────────────────────────────────────────────────
     const btnStart    = document.getElementById('btnStart');
@@ -308,33 +334,32 @@
       }
       if (actx.state === 'suspended') await actx.resume();
 
-      // Analyser
       analyserNode = actx.createAnalyser();
       analyserNode.fftSize = 2048;
       analyserNode.smoothingTimeConstant = 0;
 
-      // Route audio to a real <audio> element so the content script
-      // (normal mode, no Enhanced) can intercept it via createMediaElementSource.
-      streamDestNode = actx.createMediaStreamDestination();
-      proxyAudio.srcObject = streamDestNode.stream;
+      // Build a WAV blob the content script can hook (element path).
+      const noiseBuf = makeNoiseBuffer(selNoise.value);
+      const pcm = noiseBuf.getChannelData(0);
+      const gain = +slNoiseGain.value;
+      const scaled = new Float32Array(pcm.length);
+      for (let i = 0; i < pcm.length; i++) scaled[i] = pcm[i] * gain;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      blobUrl = URL.createObjectURL(floatToWavBlob(scaled, actx.sampleRate));
+      proxyAudio.src = blobUrl;
+      proxyAudio.loop = true;
       await proxyAudio.play();
 
-      // Graph: noise → gain → analyser → destination (speakers)
-      //                       └─────────────────→ streamDest (<audio> element for content script)
-      analyserNode.connect(actx.destination);
-      analyserNode.connect(streamDestNode);
-
-      // Noise
+      // Local meter graph (speakers) — independent of the <audio> element path
       const buf = makeNoiseBuffer(selNoise.value);
       noiseSource = actx.createBufferSource();
       noiseSource.buffer = buf;
       noiseSource.loop = true;
-
       noiseGainNode = actx.createGain();
       noiseGainNode.gain.value = +slNoiseGain.value;
-
       noiseSource.connect(noiseGainNode);
       noiseGainNode.connect(analyserNode);
+      analyserNode.connect(actx.destination);
       noiseSource.start();
       startMeter();
       setStatus('Emitiendo ruido <span>' + selNoise.value + '</span>.');
@@ -351,8 +376,10 @@
       if (noiseSource) { try { noiseSource.stop(); } catch(e){} }
       noiseSource = null;
       noiseGainNode = null;
-      if (streamDestNode) { streamDestNode.disconnect(); streamDestNode = null; }
-      proxyAudio.srcObject = null;
+      proxyAudio.pause();
+      proxyAudio.removeAttribute('src');
+      proxyAudio.load();
+      if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
       stopMeter();
       running = false;
       setStatus('Parado.');
@@ -450,6 +477,85 @@
       btn.style.opacity = '0.5';
       setTimeout(() => (btn.style.opacity = ''), 200);
     }
+
+    async function playPcmProgram(pcm, sr, label) {
+      if (noiseSource) { try { noiseSource.stop(); } catch (_) {} noiseSource = null; }
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      blobUrl = URL.createObjectURL(floatToWavBlob(pcm, sr));
+      proxyAudio.src = blobUrl;
+      proxyAudio.loop = false;
+      await proxyAudio.play();
+      btnStart.disabled = true;
+      btnStop.disabled = false;
+      setStatus(label);
+    }
+
+    /**
+     * Quiet bed + loud spikes (startle test). Goes through &lt;audio&gt; for element path.
+     */
+    async function playSpikeProgram({
+      durationSec = 8,
+      bedAmp = 0.08,
+      spikeAmp = 0.95,
+      spikeMs = 180,
+      spikeAtSec = [1.5, 3.2, 5.0, 6.6]
+    } = {}) {
+      const sr = 44100;
+      const n = Math.floor(sr * durationSec);
+      const pcm = new Float32Array(n);
+      for (let i = 0; i < n; i++) pcm[i] = (Math.random() * 2 - 1) * bedAmp;
+      for (const t0 of spikeAtSec) {
+        const a = Math.floor(t0 * sr);
+        const b = Math.min(n, a + Math.floor((spikeMs / 1000) * sr));
+        for (let i = a; i < b; i++) {
+          const env = Math.sin(Math.PI * (i - a) / (b - a));
+          pcm[i] = Math.sin(2 * Math.PI * 880 * (i / sr)) * spikeAmp * env;
+        }
+      }
+      await playPcmProgram(pcm, sr, `Spike program ${durationSec}s — bed ${bedAmp}, spikes ${spikeAmp}`);
+      return { durationSec, spikeAtSec, bedAmp, spikeAmp };
+    }
+
+    /**
+     * Alternating quiet / loud blocks — good for seeing "Igualar volumen".
+     */
+    async function playDynamicsProgram({
+      durationSec = 10,
+      quietAmp = 0.04,
+      loudAmp = 0.55,
+      blockSec = 1.5
+    } = {}) {
+      const sr = 44100;
+      const n = Math.floor(sr * durationSec);
+      const pcm = new Float32Array(n);
+      const block = Math.floor(sr * blockSec);
+      for (let i = 0; i < n; i++) {
+        const loud = Math.floor(i / block) % 2 === 1;
+        const amp = loud ? loudAmp : quietAmp;
+        pcm[i] = (Math.random() * 2 - 1) * amp;
+      }
+      await playPcmProgram(
+        pcm,
+        sr,
+        `Dynamics program ${durationSec}s — quiet ${quietAmp} / loud ${loudAmp} cada ${blockSec}s`
+      );
+      return { durationSec, quietAmp, loudAmp, blockSec };
+    }
+
+    // Playwright / manual automation hooks
+    window.__DL_TEST = {
+      start: () => btnStart.click(),
+      stop: () => btnStop.click(),
+      pulse: () => btnPulse.click(),
+      playSpikeProgram,
+      playDynamicsProgram,
+      isRunning: () => !btnStop.disabled,
+      meterText: () => meterLabel.textContent,
+      setNoiseGain: (v) => {
+        slNoiseGain.value = String(v);
+        slNoiseGain.dispatchEvent(new Event('input'));
+      }
+    };
   </script>
 </body>
 </html>

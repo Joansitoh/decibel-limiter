@@ -4,24 +4,32 @@
     "description": "The name of the extension"
   },
   "extensionDescription": {
-    "message": "Limit the maximum decibel level in a browser tab",
+    "message": "Never hear the spike — protect your ears across the web",
     "description": "The description of the extension"
   },
   "currentLevel": {
-    "message": "Current level:",
+    "message": "Current level",
     "description": "Label for current audio level"
   },
-  "averageLevel": {
-    "message": "Average:",
-    "description": "Label for average audio level"
-  },
-  "peakLevel": {
-    "message": "Peak:",
-    "description": "Label for peak audio level"
-  },
   "limit": {
-    "message": "Limit (dBFS):",
-    "description": "Label for limit slider"
+    "message": "Ceiling",
+    "description": "Label for max loudness slider on home"
+  },
+  "ceilingHint": {
+    "message": "Peaks above this are stopped",
+    "description": "Explains the ceiling slider when even-volume is off"
+  },
+  "ceilingHintEven": {
+    "message": "Peaks are stopped; quiet and loud parts are also evened out",
+    "description": "Ceiling hint when even-volume leveling is on"
+  },
+  "limitQuieter": {
+    "message": "Quieter",
+    "description": "Left end of ceiling slider"
+  },
+  "limitLouder": {
+    "message": "Louder",
+    "description": "Right end of ceiling slider"
   },
   "enable": {
     "message": "Enable",
@@ -31,45 +39,45 @@
     "message": "Disable",
     "description": "Disable button text"
   },
+  "powerOffLabel": {
+    "message": "Protection off",
+    "description": "Power switch label when disabled"
+  },
+  "powerOnLabel": {
+    "message": "Protecting",
+    "description": "Power switch label when enabled"
+  },
   "mainToggleTitle": {
     "message": "Enable/Disable",
     "description": "Title for the main toggle button"
   },
-  "micTitle": {
-    "message": "Enhanced Mode",
-    "description": "Title for the mic toggle"
+  "pathToggleTitle": {
+    "message": "Best quality (tab capture)",
+    "description": "Title for best-quality path toggle"
   },
-  "infoButtonTitle": {
-    "message": "What is Enhanced Mode?",
-    "description": "Title for the info button"
+  "pathHelpTitle": {
+    "message": "About Best quality",
+    "description": "Title for path help"
   },
-  "enhancedModeTitle": {
-    "message": "Enhanced Mode",
-    "description": "Title for enhanced mode info"
+  "pathBestTitle": {
+    "message": "Best quality",
+    "description": "Popover title"
   },
-  "enhancedModeDesc": {
-    "message": "Enables direct tab audio capture so the extension can measure average decibels and apply limiting on pages that block normal audio capture. May request additional permissions.",
-    "description": "Description for enhanced mode"
-  },
-  "enhancedModeMuted": {
-    "message": "Note: while active, the browser may prevent entering fullscreen automatically on some pages — you may need to press F11 manually.",
-    "description": "Short note for enhanced mode about fullscreen impact"
+  "pathBestDesc": {
+    "message": "Captures the whole tab so peaks are stopped before you hear them. Only one tab gets Best quality at a time — others stay protected in Fullscreen-friendly mode. Player fullscreen may need F11.",
+    "description": "Popover body"
   },
   "closeLabel": {
     "message": "Close",
-    "description": "Label for close button on info panel"
-  },
-  "limiterStrength": {
-    "message": "Limiter strength",
-    "description": "Label for limiter strength selector"
+    "description": "Label for close button"
   },
   "settingsTitle": {
     "message": "Settings",
     "description": "Title for settings panel"
   },
   "presetSelect": {
-    "message": "Preset",
-    "description": "Label for preset selector"
+    "message": "Limiter character",
+    "description": "Label for strength presets"
   },
   "floorLabel": {
     "message": "Attack floor",
@@ -87,24 +95,12 @@
     "message": "How fast volume recovers after a peak. Lower = slower recovery.",
     "description": "Tooltip explaining release speed"
   },
-  "strengthCustom": {
-    "message": "Custom",
-    "description": "Custom limiter strength option"
-  },
-  "strengthSoft": {
-    "message": "Soft",
-    "description": "Soft limiter strength option"
-  },
-  "strengthNormal": {
-    "message": "Normal",
-    "description": "Normal limiter strength option"
-  },
-  "strengthStrong": {
-    "message": "Strong",
-    "description": "Strong limiter strength option"
-  },
+  "strengthCustom": { "message": "Custom", "description": "Custom limiter strength" },
+  "strengthSoft": { "message": "Soft", "description": "Soft limiter strength" },
+  "strengthNormal": { "message": "Normal", "description": "Normal limiter strength" },
+  "strengthStrong": { "message": "Strong", "description": "Strong limiter strength" },
   "footer": {
-    "message": "Control the volume of your navigation tabs",
+    "message": "Never hear the spike",
     "description": "Footer text"
   },
   "gainLabel": {
@@ -113,38 +109,115 @@
   },
   "applyAllSitesLabel": {
     "message": "Apply to all sites",
-    "description": "Label for the global (all-sites) persistence toggle"
+    "description": "Global persistence toggle"
   },
   "applyAllSitesTooltip": {
-    "message": "Keeps this exact limiter setting active on every site/tab you open (saved persistently), instead of per-tab only.",
-    "description": "Tooltip explaining the global persistence toggle"
+    "message": "Keeps this setting on every site (overrides per-site memory).",
+    "description": "Tooltip for global toggle"
   },
+  "scenarioLabel": { "message": "Scenario", "description": "Scenario selector label" },
+  "scenarioNight": { "message": "Night", "description": "Night scenario" },
+  "scenarioBalanced": { "message": "Balanced", "description": "Balanced scenario" },
+  "scenarioSocial": { "message": "Social", "description": "Social scenario" },
+  "scenarioMusic": { "message": "Music", "description": "Music scenario" },
+  "scenarioMetaEven": { "message": "Even", "description": "Scenario meta: leveling on" },
+  "scenarioMetaStrongEven": { "message": "Strong even", "description": "Scenario meta: heavy leveling" },
+  "scenarioMetaPeaks": { "message": "Peaks only", "description": "Scenario meta: limiter only" },
+  "audioPathLabel": { "message": "Audio path", "description": "Path selector label" },
+  "pathCapture": { "message": "Best quality", "description": "Capture path" },
+  "pathElement": { "message": "Fullscreen-friendly", "description": "Element path" },
+  "pathAuto": { "message": "Auto", "description": "Auto path" },
+  "levelingLabel": { "message": "Even volume", "description": "Even-volume / leveling toggle" },
+  "levelingTooltip": {
+    "message": "Evens quiet and loud parts before the peak limiter. Turn off for Music-style dynamics.",
+    "description": "Even volume tooltip"
+  },
+  "domainSaved": { "message": "Saved", "description": "Domain remembered badge" },
+  "forgetSite": { "message": "Forget", "description": "Forget domain button" },
+  "statusModeEven": {
+    "message": "Evening volume",
+    "description": "Status mode when leveling is on"
+  },
+  "statusModePeaks": {
+    "message": "Peaks only",
+    "description": "Status mode when leveling is off"
+  },
+  "statusPathStandby": {
+    "message": "Best quality on another tab",
+    "description": "Path fragment when HQ is on another tab"
+  },
+  "statusBestQuality": {
+    "message": "Protecting · Best quality",
+    "description": "Legacy status when capture is on"
+  },
+  "statusHqStandby": {
+    "message": "Protecting · Fullscreen-friendly (Best quality on another tab)",
+    "description": "Legacy status when HQ preferred but another tab owns capture"
+  },
+  "statusElementPath": {
+    "message": "Protecting · Fullscreen-friendly",
+    "description": "Legacy status when element path is on"
+  },
+  "hqExclusiveNote": {
+    "message": "Best quality follows the tab you're listening to. Other protected tabs stay limited in Fullscreen-friendly mode.",
+    "description": "Note about smart exclusive capture"
+  },
+  "captureFallback": {
+    "message": "Best quality unavailable — using Fullscreen-friendly mode.",
+    "description": "Shown when tab capture fails"
+  },
+  "backupLabel": { "message": "Backup", "description": "Export/import section" },
+  "fineTuneLabel": { "message": "Fine tune", "description": "Floor/release section" },
+  "behaviorLabel": { "message": "Behavior", "description": "Leveling/global section" },
+  "themeLabel": { "message": "Theme", "description": "Theme section" },
+  "themeAuto": { "message": "Auto", "description": "Follow system theme" },
+  "themeLight": { "message": "Light", "description": "Light theme" },
+  "themeDark": { "message": "Dark", "description": "Dark theme" },
+  "exportSettings": { "message": "Export", "description": "Export button" },
+  "importSettings": { "message": "Import", "description": "Import button" },
+  "reviewPromptText": {
+    "message": "Enjoying Decibel Limiter? A short review helps a lot.",
+    "description": "Soft review prompt"
+  },
+  "reviewRate": { "message": "Rate", "description": "Rate button" },
+  "reviewLater": { "message": "Not now", "description": "Dismiss review" },
   "coachmarkIntro": {
-    "message": "New version available",
-    "description": "Text for the what's-new tour's intro screen"
+    "message": "Enable protection, set a ceiling, pick a mode. That’s the whole loop.",
+    "description": "What's-new intro"
   },
-  "coachmarkStart": {
-    "message": "See what's new",
-    "description": "Button to start the what's-new tour from the intro"
+  "coachmarkStart": { "message": "See what's new", "description": "Start tour" },
+  "coachmarkPower": {
+    "message": "Turn protection on here. The number shows your current level in dBFS.",
+    "description": "Tour step power"
   },
-  "coachmarkPresets": {
-    "message": "New: pick the limiter's strength with a preset.",
-    "description": "Step 1 of the what's-new tour, points at the preset selector"
+  "coachmarkScenarios": {
+    "message": "Night/Balanced/Social even volume + a ceiling. Music is peaks only — keeps dynamics.",
+    "description": "Tour step scenarios"
+  },
+  "coachmarkEvenVolume": {
+    "message": "Even volume smoothes quiet and loud parts. Ceiling always stops peaks above the line.",
+    "description": "Tour step even volume"
+  },
+  "coachmarkBestQuality": {
+    "message": "Best quality stops peaks before you hear them. Use Fullscreen-friendly if you need the player's fullscreen.",
+    "description": "Tour step HQ"
   },
   "coachmarkGlobalToggle": {
-    "message": "New: turn this on to apply the same setting to every site.",
-    "description": "Step 2 of the what's-new tour, points at the global toggle"
+    "message": "Apply to all sites overrides per-site memory. Otherwise each domain is remembered.",
+    "description": "Tour step global"
   },
-  "coachmarkNext": {
-    "message": "Next",
-    "description": "Button to advance to the next tour step"
-  },
-  "coachmarkDone": {
-    "message": "Got it",
-    "description": "Button to dismiss the tour on the last step"
-  },
+  "coachmarkNext": { "message": "Next", "description": "Next tour step" },
+  "coachmarkDone": { "message": "Got it", "description": "Done tour" },
   "fullscreenHint": {
-    "message": "With enhanced mode on, the player's fullscreen stays limited. Press F11 for true fullscreen.",
-    "description": "In-page notice shown when fullscreen fails because of enhanced mode"
+    "message": "Best quality is on — player fullscreen stays limited. Press F11 for true fullscreen, or switch to Fullscreen-friendly in Settings.",
+    "description": "In-page fullscreen notice"
+  },
+  "commandToggleEnabled": {
+    "message": "Toggle Decibel Limiter",
+    "description": "Keyboard command description"
+  },
+  "commandCycleScenario": {
+    "message": "Cycle scenario (Night / Balanced / Social / Music)",
+    "description": "Keyboard command description"
   }
 }

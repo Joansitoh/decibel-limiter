@@ -4,24 +4,32 @@
     "description": "El nombre de la extensión"
   },
   "extensionDescription": {
-    "message": "Limita el nivel máximo de decibelios en una pestaña del navegador",
+    "message": "Nunca oigas el pico — protege tus oídos en la web",
     "description": "La descripción de la extensión"
   },
   "currentLevel": {
-    "message": "Nivel actual:",
+    "message": "Nivel actual",
     "description": "Etiqueta para el nivel de audio actual"
   },
-  "averageLevel": {
-    "message": "Promedio:",
-    "description": "Etiqueta para el nivel de audio promedio"
-  },
-  "peakLevel": {
-    "message": "Pico:",
-    "description": "Etiqueta para el nivel de audio máximo"
-  },
   "limit": {
-    "message": "Límite (dBFS):",
-    "description": "Etiqueta para el control deslizante de límite"
+    "message": "Techo",
+    "description": "Etiqueta del control de volumen máximo en home"
+  },
+  "ceilingHint": {
+    "message": "Todo por encima se corta antes de oírlo",
+    "description": "Explica el techo cuando igualar volumen está off"
+  },
+  "ceilingHintEven": {
+    "message": "Se cortan los picos; también se igualan partes bajas y altas",
+    "description": "Hint del techo con igualar volumen activo"
+  },
+  "limitQuieter": {
+    "message": "Más bajo",
+    "description": "Extremo izquierdo del techo"
+  },
+  "limitLouder": {
+    "message": "Más alto",
+    "description": "Extremo derecho del techo"
   },
   "enable": {
     "message": "Activar",
@@ -31,120 +39,185 @@
     "message": "Desactivar",
     "description": "Texto del botón de desactivación"
   },
+  "powerOffLabel": {
+    "message": "Protección apagada",
+    "description": "Etiqueta del switch apagado"
+  },
+  "powerOnLabel": {
+    "message": "Protegiendo",
+    "description": "Etiqueta del switch activo"
+  },
   "mainToggleTitle": {
     "message": "Activar/Desactivar",
     "description": "Título para el botón principal"
   },
-  "micTitle": {
-    "message": "Modo mejorado",
-    "description": "Título para el toggle de micrófono"
+  "pathToggleTitle": {
+    "message": "Mejor calidad (captura de pestaña)",
+    "description": "Título del toggle de mejor calidad"
   },
-  "infoButtonTitle": {
-    "message": "¿Qué es el modo mejorado?",
-    "description": "Título para el botón de información"
+  "pathHelpTitle": {
+    "message": "Sobre Mejor calidad",
+    "description": "Título de ayuda de ruta"
   },
-  "enhancedModeTitle": {
-    "message": "Modo mejorado",
-    "description": "Título para información del modo mejorado"
+  "pathBestTitle": {
+    "message": "Mejor calidad",
+    "description": "Título del popover"
   },
-  "enhancedModeDesc": {
-    "message": "Activa la captura directa del audio de la pestaña para poder mostrar el promedio de decibelios y limitar el sonido en páginas que bloquean la captura normal. Puede solicitar permisos adicionales.",
-    "description": "Descripción para modo mejorado"
-  },
-  "enhancedModeMuted": {
-    "message": "Aviso: mientras está activo, el navegador puede impedir entrar en pantalla completa automáticamente en algunas páginas — puede que debas pulsar F11 manualmente.",
-    "description": "Nota breve para modo mejorado sobre el efecto en pantalla completa"
+  "pathBestDesc": {
+    "message": "Captura toda la pestaña para cortar los picos antes de que los oigas. Solo una pestaña tiene Mejor calidad a la vez; las demás siguen protegidas en modo Compatible con fullscreen. El fullscreen del reproductor puede requerir F11.",
+    "description": "Cuerpo del popover"
   },
   "closeLabel": {
     "message": "Cerrar",
-    "description": "Etiqueta para el botón cerrar en el panel de información"
-  },
-  "limiterStrength": {
-    "message": "Fuerza del limitador",
-    "description": "Etiqueta para el selector de fuerza del limitador"
+    "description": "Etiqueta del botón cerrar"
   },
   "settingsTitle": {
     "message": "Ajustes",
     "description": "Título del panel de ajustes"
   },
   "presetSelect": {
-    "message": "Preset",
-    "description": "Etiqueta para el selector de preset"
+    "message": "Carácter del limiter",
+    "description": "Etiqueta de presets de fuerza"
   },
   "floorLabel": {
-    "message": "Ganancia mínima",
-    "description": "Etiqueta para el control de ganancia mínima durante los picos"
+    "message": "Suelo de ataque",
+    "description": "Etiqueta del suelo de ataque"
   },
   "releaseLabel": {
-    "message": "Velocidad de recuperación",
-    "description": "Etiqueta para el slider de velocidad de recuperación"
+    "message": "Velocidad de release",
+    "description": "Etiqueta de release"
   },
   "floorTooltip": {
-    "message": "Ganancia mínima que se mantiene al limitar un pico. Cuanto más bajo, más agresivo es el recorte. En picos extremos, el límite máximo tiene prioridad.",
-    "description": "Tooltip explicando la ganancia mínima del limitador"
+    "message": "Preferencia de ataque. El techo duro siempre tiene prioridad en picos extremos.",
+    "description": "Tooltip suelo"
   },
   "releaseTooltip": {
-    "message": "Qué rápido recupera el volumen tras un pico. Más bajo = recuperación más lenta.",
-    "description": "Tooltip explicando la velocidad de recuperación"
+    "message": "Qué tan rápido recupera el volumen tras un pico. Más bajo = más lento.",
+    "description": "Tooltip release"
   },
-  "strengthCustom": {
-    "message": "Personalizado",
-    "description": "Opción de fuerza personalizada del limitador"
-  },
-  "strengthSoft": {
-    "message": "Suave",
-    "description": "Opción de fuerza suave del limitador"
-  },
-  "strengthNormal": {
-    "message": "Normal",
-    "description": "Opción de fuerza normal del limitador"
-  },
-  "strengthStrong": {
-    "message": "Fuerte",
-    "description": "Opción de fuerza fuerte del limitador"
-  },
+  "strengthCustom": { "message": "Personalizado", "description": "Fuerza personalizada" },
+  "strengthSoft": { "message": "Suave", "description": "Fuerza suave" },
+  "strengthNormal": { "message": "Normal", "description": "Fuerza normal" },
+  "strengthStrong": { "message": "Fuerte", "description": "Fuerza fuerte" },
   "footer": {
-    "message": "Controla el volumen de tus pestañas de navegación",
-    "description": "Texto del pie de página"
+    "message": "Nunca oigas el pico",
+    "description": "Pie de página"
   },
   "gainLabel": {
     "message": "Ganancia",
-    "description": "Etiqueta para la lectura en vivo de la ganancia aplicada"
+    "description": "Etiqueta de ganancia aplicada"
   },
   "applyAllSitesLabel": {
-    "message": "Aplicar a todas las webs",
-    "description": "Etiqueta para el interruptor de persistencia global (todas las webs)"
+    "message": "Aplicar a todos los sitios",
+    "description": "Toggle global"
   },
   "applyAllSitesTooltip": {
-    "message": "Mantiene este mismo ajuste del limitador activo en cualquier web/pestaña que abras (se guarda de forma persistente), en vez de solo en esta pestaña.",
-    "description": "Tooltip explicando el interruptor de persistencia global"
+    "message": "Mantiene este ajuste en todos los sitios (anula la memoria por sitio).",
+    "description": "Tooltip global"
   },
+  "scenarioLabel": { "message": "Escenario", "description": "Etiqueta de escenarios" },
+  "scenarioNight": { "message": "Noche", "description": "Escenario noche" },
+  "scenarioBalanced": { "message": "Equilibrado", "description": "Escenario equilibrado" },
+  "scenarioSocial": { "message": "Social", "description": "Escenario social" },
+  "scenarioMusic": { "message": "Música", "description": "Escenario música" },
+  "scenarioMetaEven": { "message": "Igualar", "description": "Meta escenario con leveling" },
+  "scenarioMetaStrongEven": { "message": "Igualar+", "description": "Meta escenario leveling fuerte" },
+  "scenarioMetaPeaks": { "message": "Solo picos", "description": "Meta escenario solo limiter" },
+  "audioPathLabel": { "message": "Ruta de audio", "description": "Etiqueta de ruta" },
+  "pathCapture": { "message": "Mejor calidad", "description": "Ruta captura" },
+  "pathElement": { "message": "Compatible con fullscreen", "description": "Ruta elemento" },
+  "pathAuto": { "message": "Auto", "description": "Ruta auto" },
+  "levelingLabel": { "message": "Igualar volumen", "description": "Toggle igualar volumen" },
+  "levelingTooltip": {
+    "message": "Iguala partes bajas y altas antes del limiter de picos. Apágalo para dinámicas tipo Música.",
+    "description": "Tooltip igualar volumen"
+  },
+  "domainSaved": { "message": "Guardado", "description": "Badge dominio" },
+  "forgetSite": { "message": "Olvidar", "description": "Olvidar dominio" },
+  "statusModeEven": {
+    "message": "Igualando volumen",
+    "description": "Modo de estado con leveling"
+  },
+  "statusModePeaks": {
+    "message": "Solo picos",
+    "description": "Modo de estado sin leveling"
+  },
+  "statusPathStandby": {
+    "message": "Mejor calidad en otra pestaña",
+    "description": "Fragmento de ruta cuando HQ está en otra pestaña"
+  },
+  "statusBestQuality": {
+    "message": "Protegiendo · Mejor calidad",
+    "description": "Estado legacy con captura"
+  },
+  "statusHqStandby": {
+    "message": "Protegiendo · Compatible con fullscreen (Mejor calidad en otra pestaña)",
+    "description": "Estado legacy HQ en otra pestaña"
+  },
+  "statusElementPath": {
+    "message": "Protegiendo · Compatible con fullscreen",
+    "description": "Estado legacy ruta elemento"
+  },
+  "hqExclusiveNote": {
+    "message": "Mejor calidad sigue la pestaña que estás escuchando. Las demás pestañas protegidas siguen limitadas en modo Compatible con fullscreen.",
+    "description": "Nota captura exclusiva inteligente"
+  },
+  "captureFallback": {
+    "message": "Mejor calidad no disponible — usando modo Compatible con fullscreen.",
+    "description": "Fallback captura"
+  },
+  "backupLabel": { "message": "Copia de seguridad", "description": "Sección export/import" },
+  "fineTuneLabel": { "message": "Ajuste fino", "description": "Sección floor/release" },
+  "behaviorLabel": { "message": "Comportamiento", "description": "Sección nivelación/global" },
+  "themeLabel": { "message": "Tema", "description": "Sección de tema" },
+  "themeAuto": { "message": "Auto", "description": "Seguir el sistema" },
+  "themeLight": { "message": "Claro", "description": "Tema claro" },
+  "themeDark": { "message": "Oscuro", "description": "Tema oscuro" },
+  "exportSettings": { "message": "Exportar", "description": "Botón exportar" },
+  "importSettings": { "message": "Importar", "description": "Botón importar" },
+  "reviewPromptText": {
+    "message": "¿Te gusta Decibel Limiter? Una reseña corta ayuda mucho.",
+    "description": "Prompt de reseña"
+  },
+  "reviewRate": { "message": "Valorar", "description": "Botón valorar" },
+  "reviewLater": { "message": "Ahora no", "description": "Descartar reseña" },
   "coachmarkIntro": {
-    "message": "Nueva versión disponible",
-    "description": "Texto de la pantalla de introducción del tour de novedades"
+    "message": "Activa la protección, fija el techo y elige un modo. Eso es todo.",
+    "description": "Intro what's-new"
   },
-  "coachmarkStart": {
-    "message": "Ver qué hay nuevo",
-    "description": "Botón para empezar el tour de novedades desde la intro"
+  "coachmarkStart": { "message": "Ver novedades", "description": "Empezar tour" },
+  "coachmarkPower": {
+    "message": "Activa la protección aquí. El número es el nivel actual en dBFS.",
+    "description": "Tour botón de potencia"
   },
-  "coachmarkPresets": {
-    "message": "Nuevo: elige la fuerza del limitador con un preset.",
-    "description": "Paso 1 del tour de novedades, señala el selector de presets"
+  "coachmarkScenarios": {
+    "message": "Noche/Equilibrado/Social igualan volumen + techo. Música es solo picos — mantiene dinámicas.",
+    "description": "Tour escenarios"
+  },
+  "coachmarkEvenVolume": {
+    "message": "Igualar volumen suaviza bajos y altos. El techo siempre corta los picos por encima de la línea.",
+    "description": "Tour igualar volumen"
+  },
+  "coachmarkBestQuality": {
+    "message": "Mejor calidad corta los picos antes de oírlos. Usa Compatible con fullscreen si necesitas el fullscreen del reproductor.",
+    "description": "Tour HQ"
   },
   "coachmarkGlobalToggle": {
-    "message": "Nuevo: activa esto para aplicar el mismo ajuste en todas las webs.",
-    "description": "Paso 2 del tour de novedades, señala el interruptor global"
+    "message": "Aplicar a todos los sitios anula la memoria por dominio. Si no, cada sitio se recuerda.",
+    "description": "Tour global"
   },
-  "coachmarkNext": {
-    "message": "Siguiente",
-    "description": "Botón para pasar al siguiente paso del tour"
-  },
-  "coachmarkDone": {
-    "message": "Entendido",
-    "description": "Botón para cerrar el tour en el último paso"
-  },
+  "coachmarkNext": { "message": "Siguiente", "description": "Siguiente paso" },
+  "coachmarkDone": { "message": "Entendido", "description": "Fin del tour" },
   "fullscreenHint": {
-    "message": "Con el modo mejorado activo, la pantalla completa del reproductor queda limitada. Pulsa F11 para pantalla completa real.",
-    "description": "Aviso mostrado en la página cuando falla la pantalla completa por el modo mejorado"
+    "message": "Mejor calidad activo — el fullscreen del reproductor queda limitado. Pulsa F11 o cambia a Compatible con fullscreen en Ajustes.",
+    "description": "Aviso fullscreen"
+  },
+  "commandToggleEnabled": {
+    "message": "Activar/desactivar Decibel Limiter",
+    "description": "Descripción comando"
+  },
+  "commandCycleScenario": {
+    "message": "Cambiar escenario (Noche / Equilibrado / Social / Música)",
+    "description": "Descripción comando"
   }
 }

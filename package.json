@@ -1,0 +1,15 @@
+{
+  "name": "decibel-limiter",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:unit": "node tests/verify-tab-handoff.mjs",
+    "test:e2e": "playwright test --project=chromium-extension",
+    "test:e2e:headed": "playwright test --project=chromium-extension --headed",
+    "test:reports": "playwright test --project=chromium-extension tests/e2e/waveform-report.spec.mjs",
+    "test:hq": "playwright test --project=hq-manual --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

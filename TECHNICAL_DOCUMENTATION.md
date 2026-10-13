@@ -19,10 +19,14 @@ The Decibel Limiter is a lightweight browser extension that monitors and control
 
 The extension follows a modular architecture with **dual-mode processing** and four main components:
 
-### Processing Modes
+### Processing Modes (v1.5 path policy)
 
-- **Normal Mode**: For traditional HTML audio/video elements (YouTube, Netflix)
-- **Enhanced Mode**: For modern streaming services using MSE/Web Audio API (Disney+, Hulu, SoundCloud)
+- **Best quality (`audioPath: capture`, default when enabled)**: `tabCapture` → offscreen → lookahead limiter. This is the path users perceive as “real” protection (peaks never heard). Badge: `HQ`.
+- **Fullscreen-friendly (`audioPath: element`)**: Content-script `MediaElementSource` per `<audio>`/`<video>`. Keeps player fullscreen; weaker coverage on SPAs/MSE.
+- **Auto**: Try capture; on failure fall back to element.
+- **Leveling** (optional): `DynamicsCompressor` + makeup **before** the brickwall; Music scenario disables it.
+
+See `investigate/04-normal-vs-enhanced.md` and `extension/js/presets.js`.
 
 ### Components
 

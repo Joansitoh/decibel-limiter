@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decibel Limiter — Video fixture</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 24px;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    h1 { font-size: 1.1rem; font-weight: 600; }
+    video {
+      width: min(960px, 100%);
+      background: #000;
+      border-radius: 8px;
+    }
+    .status { font-size: 0.85rem; color: #888; }
+    #hqGate {
+      display: none;
+      position: fixed; inset: 0; z-index: 99999;
+      background: rgba(8, 10, 14, 0.92);
+      color: #eef0f5;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 32px;
+      align-items: center;
+      justify-content: center;
+    }
+    #hqGate.show { display: flex; }
+    #hqGate .panel {
+      max-width: 520px;
+      background: #161a22;
+      border: 1px solid #2a3140;
+      border-radius: 16px;
+      padding: 28px 28px 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    }
+    #hqGate h2 { margin: 0 0 12px; font-size: 1.25rem; }
+    #hqGate ol { margin: 0 0 16px; padding-left: 1.3em; line-height: 1.55; color: #c5c9d3; }
+    #hqGate .wait {
+      font-weight: 600;
+      color: #c9a227;
+      min-height: 1.4em;
+    }
+    #hqGate .wait.ok { color: #3dd68c; }
+  </style>
+</head>
+<body>
+  <h1>Local video fixture</h1>
+  <video id="vid" controls playsinline preload="auto" src="videoplayback.mp4"></video>
+  <p class="status" id="status">Idle</p>
+  <div id="hqGate" aria-live="polite">
+    <div class="panel">
+      <h2>Activa Best quality (HQ)</h2>
+      <p style="color:#a8b0c0;margin:0 0 14px;line-height:1.45">
+        Chrome solo permite tabCapture si la extensión fue <strong>invocada</strong>
+        (el icono de la barra no funciona bien en Playwright). El botón envía
+        <kbd>Alt+Shift+U</kbd> al sistema y arranca HQ en <strong>esta</strong> pestaña.
+        Deja la ventana de Chromium visible.
+      </p>
+      <button type="button" id="hqActivateBtn" style="
+        width:100%;padding:14px 16px;border:none;border-radius:10px;
+        background:#3dd68c;color:#0b0d11;font:600 1rem Segoe UI,system-ui,sans-serif;
+        cursor:pointer;margin-bottom:14px;">
+        Activar Best quality ahora
+      </button>
+      <p class="wait" id="hqWait">Esperando…</p>
+    </div>
+  </div>
+  <script>
+    const vid = document.getElementById('vid');
+    const statusEl = document.getElementById('status');
+    const gate = document.getElementById('hqGate');
+    const hqWait = document.getElementById('hqWait');
+    const hqBtn = document.getElementById('hqActivateBtn');
+
+    hqBtn.addEventListener('click', async () => {
+      hqBtn.disabled = true;
+      hqWait.classList.remove('ok');
+      hqWait.textContent = 'Activando captura…';
+      try {
+        if (typeof window.__dlActivateHq !== 'function') {
+          throw new Error('Bridge del test no listo (__dlActivateHq)');
+        }
+        const res = await window.__dlActivateHq();
+        if (!res?.ok) {
+          hqWait.textContent = 'Falló HQ: ' + (res?.error || JSON.stringify(res));
+          hqBtn.disabled = false;
+          return;
+        }
+        hqWait.classList.add('ok');
+        hqWait.textContent = 'HQ activo (captureActive). El test sigue…';
+      } catch (err) {
+        hqWait.textContent = 'Error: ' + (err?.message || err);
+        hqBtn.disabled = false;
+      }
+    });
+
+    window.__DL_TEST = {
+      showHqGate(msg) {
+        gate.classList.add('show');
+        hqBtn.disabled = false;
+        hqWait.classList.remove('ok');
+        hqWait.textContent = msg || 'Esperando a que pulses el botón…';
+      },
+      setHqGateStatus(msg, ok = false) {
+        hqWait.textContent = msg;
+        hqWait.classList.toggle('ok', !!ok);
+      },
+      hideHqGate() {
+        gate.classList.remove('show');
+      },
+      async play({ fromSec = 0 } = {}) {
+        if (Number.isFinite(fromSec) && fromSec > 0) {
+          await new Promise((resolve, reject) => {
+            const onMeta = () => { vid.removeEventListener('loadedmetadata', onMeta); resolve(); };
+            if (vid.readyState >= 1) resolve();
+            else {
+              vid.addEventListener('loadedmetadata', onMeta);
+              vid.addEventListener('error', () => reject(new Error('video load error')), { once: true });
+            }
+          });
+          vid.currentTime = Math.min(fromSec, (vid.duration || fromSec) - 0.1);
+        }
+        vid.muted = false;
+        await vid.play();
+        statusEl.textContent = `Playing @ ${vid.currentTime.toFixed(1)}s / ${Number.isFinite(vid.duration) ? vid.duration.toFixed(1) + 's' : '?'}`;
+        return { duration: vid.duration, currentTime: vid.currentTime };
+      },
+      pause: () => vid.pause(),
+      isPlaying: () => !vid.paused && !vid.ended,
+      currentTime: () => vid.currentTime,
+      duration: () => vid.duration,
+      setVolume: (v) => {
+        vid.volume = Math.max(0, Math.min(1, Number(v)));
+        statusEl.textContent = `volume=${vid.volume.toFixed(2)} @ ${vid.currentTime.toFixed(1)}s`;
+        return vid.volume;
+      },
+      getVolume: () => vid.volume
+    };
+  </script>
+</body>
+</html>

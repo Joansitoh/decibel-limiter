@@ -3,178 +3,255 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
   <title data-i18n="extensionName">Decibel Limiter</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
   <link rel="stylesheet" href="popup.css" />
 </head>
-
 <body>
-  <div class="container">
-    <header class="header">
-      <div class="header-left">
-        <a href="https://github.com/Joansitoh" target="_blank" class="brand-link header-icon-wrap" title="GitHub">
-          <img src="icons/icon128.png" class="header-icon" alt="Icon" />
-          <span class="led"></span>
-        </a>
-        <div class="header-text">
-          <h1 data-i18n="extensionName">Decibel Limiter</h1>
-          <span class="subtitle" data-i18n="extensionDescription">Audio limiter for browser tabs</span>
+  <svg xmlns="http://www.w3.org/2000/svg" hidden aria-hidden="true">
+    <symbol id="i-moon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M19 14.5A7.5 7.5 0 1 1 9.5 5 6 6 0 0 0 19 14.5z"/></symbol>
+    <symbol id="i-balance" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M12 4v16M5 9h14M7 9l-2 7h6L9 9m6 0-2 7h6l-2-7"/></symbol>
+    <symbol id="i-social" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M8 10h.01M12 10h.01M16 10h.01M5 18v-1a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v1"/><circle cx="12" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.75"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="17" cy="16" r="2.5" fill="none" stroke="currentColor" stroke-width="1.75"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.75"/><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M12 3.5v2.2M12 18.3v2.2M4.8 7.2l1.9 1.1M17.3 15.7l1.9 1.1M3.5 12h2.2M18.3 12h2.2M4.8 16.8l1.9-1.1M17.3 8.3l1.9-1.1"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M15 5 8 12l7 7"/></symbol>
+    <symbol id="i-hq" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M8 10v4M8 12h2a1 1 0 0 0 0-2H8m6 4V10h1.2a1.2 1.2 0 1 1 0 2.4H14"/></symbol>
+    <symbol id="i-fs" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.75"/><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M12 11v5M12 8h.01"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" d="m12 3 1.1 6.2L19 12l-5.9 2.8L12 21l-1.1-6.2L5 12l5.9-2.8L12 3z"/></symbol>
+  </svg>
+
+  <div class="app" id="homeView">
+    <header class="top">
+      <div class="brand header-icon-wrap">
+        <img src="icons/icon128.png" alt="" width="30" height="30" class="mark" />
+        <div class="brand-text">
+          <span class="wordmark" data-i18n="extensionName">Decibel Limiter</span>
+          <div class="site-line" id="domainChip" hidden>
+            <span id="domainLabel" class="site-name">—</span>
+            <span id="domainSavedBadge" class="pill" hidden data-i18n="domainSaved">Saved</span>
+            <button type="button" id="forgetDomain" class="link" hidden data-i18n="forgetSite">Forget</button>
+          </div>
         </div>
       </div>
-
-      
+      <button type="button" id="infoButton" class="icon-btn" data-i18n-title="settingsTitle" data-i18n-aria="settingsTitle">
+        <svg width="18" height="18" aria-hidden="true"><use href="#i-gear"/></svg>
+      </button>
     </header>
 
-    <div class="card meter-card">
-      <div class="section-header">
-          <span data-i18n="currentLevel">Current Level</span>
-        <span id="averageDB" class="value">-∞ dBFS</span>
+    <main class="stage">
+      <!-- Left: vertical fader. The coral line is the ceiling: drag it. -->
+      <div class="fader" id="fader">
+        <div class="scale" id="scale" aria-hidden="true"></div>
+        <div class="tube" id="meterTube">
+          <div class="tube-zone"></div>
+          <div class="tube-fill" id="meterFill"></div>
+        </div>
+        <div class="handle" id="limitHandle" role="slider" tabindex="0"
+             aria-orientation="vertical" aria-labelledby="ceilingHeading"
+             aria-valuemin="-60" aria-valuemax="0" aria-valuenow="-20">
+          <span class="handle-line"></span>
+          <span class="handle-tab mono" id="limitTab">−20</span>
+        </div>
       </div>
 
-      <div class="meter-bar">
-        <div class="meter-fill" id="meterFill"></div>
-        <div class="meter-limit-marker" id="meterLimitMarker" aria-hidden="true"></div>
-      </div>
-
-      <div class="scale-markers">
-        <span>MIN -60</span><span>-30</span><span>0 MAX</span>
-      </div>
-
-      <div class="gain-readout" id="gainReadout" hidden>Gain: +0.0 dB</div>
-    </div>
-
-    <div class="card slider-card">
-      <div class="section-header">
-        <span data-i18n="limit">Limit</span>
-        <span id="limitValue" class="value">-20 dBFS</span>
-      </div>
-
-      <input type="range" id="limitSlider" min="-60" max="0" step="1" value="-20" />
-
-      <div class="scale-markers">
-        <span>-60</span><span>-30</span><span>0</span>
-      </div>
-    </div>
-
-    <div class="button-row">
-      <div class="main-btn-wrap">
-          <button id="mainToggle" class="btn main-btn combined" data-i18n-title="mainToggleTitle">
-            <span class="material-icons">power_settings_new</span>
-            <span id="toggleText" data-i18n="enable">Enable</span>
+      <!-- Right: power, readouts, scenarios -->
+      <div class="side">
+        <section class="power" aria-live="polite">
+          <p class="power-status" id="statusLine" data-i18n="extensionDescription">Never hear the spike</p>
+          <button type="button" id="mainToggle" class="power-switch" data-i18n-title="mainToggleTitle" role="switch" aria-checked="false">
+            <span class="power-switch-copy">
+              <span id="toggleText" data-i18n="powerOffLabel">Protection off</span>
+            </span>
+            <span class="power-switch-track" aria-hidden="true"><span class="power-switch-knob"></span></span>
           </button>
-          <button type="button" id="micToggle" class="mic-toggle" aria-pressed="false" data-i18n-title="micTitle">
-            <span class="material-icons">mic</span>
-          </button>
+        </section>
 
-        <button type="button" popovertarget="enhancedModePopover" class="mic-help-btn" id="micHelpBtn" data-i18n-title="infoButtonTitle">
-          <span class="material-icons">info</span>
+        <section class="readout">
+          <p class="caption" data-i18n="currentLevel">Current level</p>
+          <p class="level"><span id="averageDB" class="mono">−∞</span><span class="unit">dBFS</span></p>
+          <p id="gainReadout" class="gain mono" aria-hidden="true"></p>
+        </section>
+
+        <section class="ceiling">
+          <div class="ceiling-row">
+            <label id="ceilingHeading" data-i18n="limit">Ceiling</label>
+            <span id="limitValue" class="mono value">−20 dBFS</span>
+          </div>
+          <p class="hint" id="ceilingHint" data-i18n="ceilingHint">Peaks above this are stopped</p>
+        </section>
+
+        <section class="even-vol" aria-labelledby="evenVolumeLabel">
+          <div class="even-row">
+            <span class="label-group">
+              <span id="evenVolumeLabel" data-i18n="levelingLabel">Even volume</span>
+              <span class="tip"><svg width="12" height="12" aria-hidden="true"><use href="#i-info"/></svg><span class="tooltip" data-i18n="levelingTooltip">Evens quiet and loud parts before the peak limiter. Off for Music.</span></span>
+            </span>
+            <button type="button" id="evenVolumeToggle" class="switch js-leveling-toggle" role="switch" aria-checked="false" data-i18n-aria="levelingLabel">
+              <span class="switch-knob"></span>
+            </button>
+          </div>
+        </section>
+
+        <section class="modes" aria-labelledby="scenarioHeading">
+          <h2 id="scenarioHeading" class="section-title" data-i18n="scenarioLabel">Scenario</h2>
+          <div class="list" id="scenarioSelector" role="group" aria-labelledby="scenarioHeading">
+            <button type="button" data-scenario="night" aria-pressed="false">
+              <svg width="18" height="18" aria-hidden="true"><use href="#i-moon"/></svg>
+              <span class="name" data-i18n="scenarioNight">Night</span>
+              <span class="meta mono" data-scenario-meta="night"></span>
+            </button>
+            <button type="button" data-scenario="balanced" aria-pressed="false">
+              <svg width="18" height="18" aria-hidden="true"><use href="#i-balance"/></svg>
+              <span class="name" data-i18n="scenarioBalanced">Balanced</span>
+              <span class="meta mono" data-scenario-meta="balanced"></span>
+            </button>
+            <button type="button" data-scenario="social" aria-pressed="false">
+              <svg width="18" height="18" aria-hidden="true"><use href="#i-social"/></svg>
+              <span class="name" data-i18n="scenarioSocial">Social</span>
+              <span class="meta mono" data-scenario-meta="social"></span>
+            </button>
+            <button type="button" data-scenario="music" aria-pressed="false">
+              <svg width="18" height="18" aria-hidden="true"><use href="#i-music"/></svg>
+              <span class="name" data-i18n="scenarioMusic">Music</span>
+              <span class="meta mono" data-scenario-meta="music"></span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div class="foot-block">
+      <p id="captureError" class="banner warn" hidden></p>
+      <p id="hqNote" class="banner" hidden data-i18n="hqExclusiveNote">Best quality follows the tab you're listening to. Other protected tabs stay limited in Fullscreen-friendly mode.</p>
+      <footer class="foot">
+        <button type="button" id="pathToggle" class="path" aria-pressed="false" data-i18n-title="pathToggleTitle">
+          <svg class="icon-hq" width="16" height="16" aria-hidden="true"><use href="#i-hq"/></svg>
+          <svg class="icon-fs" width="16" height="16" aria-hidden="true" hidden><use href="#i-fs"/></svg>
+          <span id="pathChipLabel" data-i18n="pathCapture">Best quality</span>
         </button>
-      </div>
-
-      <button id="infoButton" class="btn info-btn" data-i18n-title="infoButtonTitle">
-        <span class="material-icons">settings</span>
-      </button>
-    </div>
-
-    <div id="enhancedModePopover" popover class="enhanced-popover">
-      <strong data-i18n="enhancedModeTitle">Enhanced Mode</strong>
-      <p data-i18n="enhancedModeDesc">Improves detection and processing by capturing the tab's audio directly. Provides more accurate measurements and a more reliable limiter, but may request additional permissions.</p>
-    </div>
-
-    <div id="enhancedInfo" class="enhanced-info" hidden>
-      <div class="info-card card">
-        <div class="info-row">
-          <strong data-i18n="enhancedModeTitle">Enhanced Mode</strong>
-          <button id="closeInfo" class="close-info" data-i18n-aria="closeLabel">×</button>
-        </div>
-        <p data-i18n="enhancedModeDesc">Improves detection and processing by capturing the tab's audio directly. Provides more accurate measurements and a more reliable limiter, but may request additional permissions.</p>
-        <p class="muted" data-i18n="enhancedModeMuted">Use when you need maximum accuracy on complex audio tabs.</p>
-      </div>
-    </div>
-
-    <div id="settingsView" class="settings-view">
-      <div class="settings-header">
-        <button id="closeSettings" class="btn icon-btn" data-i18n-aria="closeLabel">
-          <span class="material-icons">arrow_back</span>
+        <button type="button" class="icon-btn sm" id="pathHelpBtn" data-i18n-title="pathHelpTitle" data-i18n-aria="pathHelpTitle">
+          <svg width="14" height="14" aria-hidden="true"><use href="#i-info"/></svg>
         </button>
-        <span data-i18n="settingsTitle">Settings</span>
-      </div>
-
-      <div class="card slider-card">
-        <div class="section-header">
-          <span data-i18n="presetSelect">Preset</span>
-        </div>
-        <div class="preset-selector" id="presetSelector">
-          <button type="button" data-preset="soft" data-i18n="strengthSoft">Soft</button>
-          <button type="button" data-preset="normal" data-i18n="strengthNormal">Normal</button>
-          <button type="button" data-preset="strong" data-i18n="strengthStrong">Strong</button>
-          <button type="button" data-preset="custom" data-i18n="strengthCustom">Custom</button>
-        </div>
-      </div>
-
-      <div class="card slider-card">
-        <div class="section-header">
-          <span class="label-group">
-            <span data-i18n="floorLabel">Minimum gain</span>
-            <span class="info-icon">
-              <span class="material-icons">info</span>
-              <span class="tooltip" data-i18n="floorTooltip">Minimum gain kept during a peak. Lower means more aggressive limiting.</span>
-            </span>
-          </span>
-          <span id="floorValue" class="value">0.01</span>
-        </div>
-        <input type="range" id="floorSlider" min="1" max="100" step="1" value="10" />
-        <div class="scale-markers">
-          <span>0.001</span><span>0.05</span><span>0.1</span>
-        </div>
-      </div>
-
-      <div class="card slider-card">
-        <div class="section-header">
-          <span class="label-group">
-            <span data-i18n="releaseLabel">Release speed</span>
-            <span class="info-icon">
-              <span class="material-icons">info</span>
-              <span class="tooltip" data-i18n="releaseTooltip">How fast volume recovers after a peak. Lower = slower recovery.</span>
-            </span>
-          </span>
-          <span id="releaseValue" class="value">8 dB/s</span>
-        </div>
-        <input type="range" id="releaseSlider" min="1" max="30" step="1" value="8" />
-        <div class="scale-markers">
-          <span>1 dB/s</span><span>15 dB/s</span><span>30 dB/s</span>
-        </div>
-      </div>
-
-      <div class="card toggle-card">
-        <div class="section-header">
-          <span class="label-group">
-            <span data-i18n="applyAllSitesLabel">Apply to all sites</span>
-            <span class="info-icon">
-              <span class="material-icons">info</span>
-              <span class="tooltip" data-i18n="applyAllSitesTooltip">Keeps this exact limiter setting active on every site/tab you open (saved persistently), instead of per-tab only.</span>
-            </span>
-          </span>
-          <button type="button" id="globalToggle" class="switch" role="switch" aria-checked="false">
-            <span class="switch-knob"></span>
-          </button>
-        </div>
-      </div>
+      </footer>
     </div>
-
-    <div id="coachmark" class="coachmark" hidden>
-      <div class="coachmark-tooltip">
-        <span class="coachmark-intro-icon material-icons">auto_awesome</span>
-        <span id="coachmarkStep" class="coachmark-step">1/2</span>
-        <p id="coachmarkText" class="coachmark-text"></p>
-        <button id="coachmarkNext" class="btn coachmark-next"></button>
-      </div>
-    </div>
-
-    <footer class="footer" data-i18n="footer">Control the volume of your navigation tabs</footer>
   </div>
 
-  <script src="js/popup.js"></script>
+  <div id="pathHelpPanel" class="path-sheet" hidden aria-hidden="true">
+    <div class="path-sheet-scrim" id="pathHelpScrim"></div>
+    <div class="path-sheet-card" role="dialog" aria-modal="true" aria-labelledby="pathHelpTitle">
+      <header>
+        <h3 id="pathHelpTitle" data-i18n="pathBestTitle">Best quality</h3>
+        <button type="button" class="icon-btn sm" id="pathHelpClose" data-i18n-aria="closeLabel" aria-label="Close">×</button>
+      </header>
+      <p class="body" data-i18n="pathBestDesc">Captures the whole tab so peaks are stopped before you hear them. Only one tab gets Best quality at a time — others stay protected in Fullscreen-friendly mode. Player fullscreen may need F11.</p>
+      <div class="actions">
+        <button type="button" class="solid" id="pathHelpGotIt" data-i18n="coachmarkDone">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settingsView" class="sheet" aria-hidden="true">
+    <header class="sheet-bar">
+      <button type="button" id="closeSettings" class="icon-btn" data-i18n-aria="closeLabel">
+        <svg width="18" height="18" aria-hidden="true"><use href="#i-back"/></svg>
+      </button>
+      <span data-i18n="settingsTitle">Settings</span>
+      <span class="sheet-spacer"></span>
+    </header>
+
+    <div class="sheet-scroll">
+      <p class="group-label" data-i18n="themeLabel">Theme</p>
+      <div class="group compact three" id="themeSelector">
+        <button type="button" data-theme-choice="auto" data-i18n="themeAuto">Auto</button>
+        <button type="button" data-theme-choice="light" data-i18n="themeLight">Light</button>
+        <button type="button" data-theme-choice="dark" data-i18n="themeDark">Dark</button>
+      </div>
+
+      <p class="group-label" data-i18n="audioPathLabel">Audio path</p>
+      <div class="group" id="pathSelector">
+        <button type="button" data-path="capture" class="row"><span data-i18n="pathCapture">Best quality</span></button>
+        <button type="button" data-path="element" class="row"><span data-i18n="pathElement">Fullscreen-friendly</span></button>
+        <button type="button" data-path="auto" class="row"><span data-i18n="pathAuto">Auto</span></button>
+      </div>
+
+      <p class="group-label" data-i18n="presetSelect">Limiter character</p>
+      <div class="group compact" id="presetSelector">
+        <button type="button" data-preset="soft" data-i18n="strengthSoft">Soft</button>
+        <button type="button" data-preset="normal" data-i18n="strengthNormal">Normal</button>
+        <button type="button" data-preset="strong" data-i18n="strengthStrong">Strong</button>
+        <button type="button" data-preset="custom" data-i18n="strengthCustom">Custom</button>
+      </div>
+
+      <p class="group-label" data-i18n="fineTuneLabel">Fine tune</p>
+      <div class="group stack">
+        <div class="row-static">
+          <span class="label-group">
+            <span data-i18n="floorLabel">Minimum gain</span>
+            <span class="tip"><svg width="12" height="12" aria-hidden="true"><use href="#i-info"/></svg><span class="tooltip" data-i18n="floorTooltip">Minimum gain kept during a peak.</span></span>
+          </span>
+          <span id="floorValue" class="mono">0.010</span>
+        </div>
+        <input type="range" id="floorSlider" class="slider" min="1" max="100" step="1" value="10" />
+        <div class="row-static">
+          <span class="label-group">
+            <span data-i18n="releaseLabel">Release speed</span>
+            <span class="tip"><svg width="12" height="12" aria-hidden="true"><use href="#i-info"/></svg><span class="tooltip" data-i18n="releaseTooltip">How fast volume recovers after a peak.</span></span>
+          </span>
+          <span id="releaseValue" class="mono">8 dB/s</span>
+        </div>
+        <input type="range" id="releaseSlider" class="slider" min="1" max="30" step="1" value="8" />
+      </div>
+
+      <p class="group-label" data-i18n="behaviorLabel">Behavior</p>
+      <div class="group">
+        <div class="row-static">
+          <span class="label-group">
+            <span data-i18n="levelingLabel">Even volume</span>
+            <span class="tip"><svg width="12" height="12" aria-hidden="true"><use href="#i-info"/></svg><span class="tooltip" data-i18n="levelingTooltip">Evens quiet and loud parts before the peak limiter. Off for Music.</span></span>
+          </span>
+          <button type="button" id="levelingToggle" class="switch js-leveling-toggle" role="switch" aria-checked="false" data-i18n-aria="levelingLabel"><span class="switch-knob"></span></button>
+        </div>
+        <div class="row-static">
+          <span class="label-group">
+            <span data-i18n="applyAllSitesLabel">Apply to all sites</span>
+            <span class="tip"><svg width="12" height="12" aria-hidden="true"><use href="#i-info"/></svg><span class="tooltip" data-i18n="applyAllSitesTooltip">Overrides per-site memory.</span></span>
+          </span>
+          <button type="button" id="globalToggle" class="switch" role="switch" aria-checked="false"><span class="switch-knob"></span></button>
+        </div>
+      </div>
+
+      <p class="group-label" data-i18n="backupLabel">Backup</p>
+      <div class="group split">
+        <button type="button" id="exportBtn" class="row center" data-i18n="exportSettings">Export</button>
+        <button type="button" id="importBtn" class="row center" data-i18n="importSettings">Import</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" hidden />
+    </div>
+  </div>
+
+  <div id="reviewPrompt" class="modal" hidden>
+    <div class="modal-scrim" id="reviewDismissBackdrop"></div>
+    <div class="modal-panel" role="dialog" aria-modal="true">
+      <p data-i18n="reviewPromptText">Enjoying Decibel Limiter?</p>
+      <div class="modal-actions">
+        <a id="reviewLink" class="solid" target="_blank" rel="noopener" data-i18n="reviewRate">Rate</a>
+        <button type="button" id="reviewDismiss" class="link" data-i18n="reviewLater">Not now</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="coachmark" class="coachmark" hidden>
+    <div class="coachmark-tooltip">
+      <svg class="coachmark-intro-icon" width="28" height="28" aria-hidden="true"><use href="#i-spark"/></svg>
+      <span id="coachmarkStep" class="coachmark-step">1/2</span>
+      <p id="coachmarkText" class="coachmark-text"></p>
+      <button type="button" id="coachmarkNext" class="solid coachmark-next"></button>
+    </div>
+  </div>
+
+  <script src="js/gsap.min.js"></script>
+  <script src="js/presets.js"></script>
+  <script type="module" src="js/popup/main.js"></script>
 </body>
 </html>
