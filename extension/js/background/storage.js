@@ -1,14 +1,14 @@
 /**
  * @file Background storage — tab / domain / global config
- * Must be importScripts'd after presets.js. Use self.DLPresets (no local const —
- * importScripts shares one realm; redeclared const across files can kill the SW).
+ * Must be importScripts'd after presets.js. Use self.DLPresets, not top-level
+ * destructures: main.js already declares those names in the shared global scope,
+ * and a redeclared const across files kills the SW.
  */
 
-// Attach to self — top-level const from importScripts is NOT visible in main.js.
+// importScripts files share one global scope, so these are visible in main.js too.
 const GLOBAL_STORAGE_KEY = 'global_config';
 const DOMAIN_STORAGE_KEY = 'domain_configs';
 const REVIEW_STORAGE_KEY = 'reviewPrompt';
-Object.assign(self, { GLOBAL_STORAGE_KEY, DOMAIN_STORAGE_KEY, REVIEW_STORAGE_KEY });
 
 function tabConfigKey(tabId) { return `tab_cfg_${tabId}`; }
 

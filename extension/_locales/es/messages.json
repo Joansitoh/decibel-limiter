@@ -79,17 +79,9 @@
     "message": "Carácter del limiter",
     "description": "Etiqueta de presets de fuerza"
   },
-  "floorLabel": {
-    "message": "Suelo de ataque",
-    "description": "Etiqueta del suelo de ataque"
-  },
   "releaseLabel": {
     "message": "Velocidad de release",
     "description": "Etiqueta de release"
-  },
-  "floorTooltip": {
-    "message": "Preferencia de ataque. El techo duro siempre tiene prioridad en picos extremos.",
-    "description": "Tooltip suelo"
   },
   "releaseTooltip": {
     "message": "Qué tan rápido recupera el volumen tras un pico. Más bajo = más lento.",
@@ -146,6 +138,10 @@
     "message": "Mejor calidad en otra pestaña",
     "description": "Fragmento de ruta cuando HQ está en otra pestaña"
   },
+  "statusPathUnavailable": {
+    "message": "Mejor calidad en pausa — pulsa para reanudar",
+    "description": "Fragmento de ruta cuando HQ no pudo arrancar en esta pestaña"
+  },
   "statusBestQuality": {
     "message": "Protegiendo · Mejor calidad",
     "description": "Estado legacy con captura"
@@ -158,16 +154,8 @@
     "message": "Protegiendo · Compatible con fullscreen",
     "description": "Estado legacy ruta elemento"
   },
-  "hqExclusiveNote": {
-    "message": "Mejor calidad sigue la pestaña que estás escuchando. Las demás pestañas protegidas siguen limitadas en modo Compatible con fullscreen.",
-    "description": "Nota captura exclusiva inteligente"
-  },
-  "captureFallback": {
-    "message": "Mejor calidad no disponible — usando modo Compatible con fullscreen.",
-    "description": "Fallback captura"
-  },
   "backupLabel": { "message": "Copia de seguridad", "description": "Sección export/import" },
-  "fineTuneLabel": { "message": "Ajuste fino", "description": "Sección floor/release" },
+  "fineTuneLabel": { "message": "Ajuste fino", "description": "Release section" },
   "behaviorLabel": { "message": "Comportamiento", "description": "Sección nivelación/global" },
   "themeLabel": { "message": "Tema", "description": "Sección de tema" },
   "themeAuto": { "message": "Auto", "description": "Seguir el sistema" },

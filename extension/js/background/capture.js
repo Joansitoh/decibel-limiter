@@ -29,15 +29,22 @@ function applyBadge(tabId, cfg, captureActive = activeCaptures.has(tabId)) {
 }
 
 /** Push config + runtime captureActive so content can soft-handoff to element path. */
-async function pushConfigToTab(tabId, cfg, extra = {}) {
+async function pushConfigToTab(tabId, cfg) {
   try {
     await chromeAsync.sendMessageTab(tabId, {
       type: 'setConfig',
       ...cfg,
-      captureActive: activeCaptures.has(tabId),
-      ...extra
+      captureActive: activeCaptures.has(tabId)
     });
   } catch (_) { /* no content script */ }
+}
+
+async function wantsCaptureTab(tabId) {
+  try {
+    return self.DLPresets.wantsCapture(await getTabConfig(tabId));
+  } catch (_) {
+    return false; // tab gone
+  }
 }
 
 /**
@@ -47,66 +54,31 @@ async function pushConfigToTab(tabId, cfg, extra = {}) {
  * so that switching tabs or opening new tabs does not disrupt the currently playing audio.
  */
 async function pickHqOwner(preferTabId = null, { force = false } = {}) {
-  if (force && preferTabId != null) {
-    try {
-      const preferCfg = await getTabConfig(preferTabId);
-      if (self.DLPresets.wantsCapture(preferCfg)) return preferTabId;
-    } catch (_) { /* tab gone */ }
-  }
+  if (force && preferTabId != null && await wantsCaptureTab(preferTabId)) return preferTabId;
 
   // Preserve existing active capture if the tab is still alive and wants capture
   for (const activeTabId of activeCaptures.keys()) {
     try {
       await chrome.tabs.get(activeTabId);
-      const activeCfg = await getTabConfig(activeTabId);
-      if (self.DLPresets.wantsCapture(activeCfg)) {
-        return activeTabId;
-      }
+      if (await wantsCaptureTab(activeTabId)) return activeTabId;
     } catch (_) { /* tab closed or gone */ }
   }
 
-  if (preferTabId != null) {
-    try {
-      const preferCfg = await getTabConfig(preferTabId);
-      if (self.DLPresets.wantsCapture(preferCfg)) return preferTabId;
-    } catch (_) { /* tab gone */ }
-  }
+  if (preferTabId != null && await wantsCaptureTab(preferTabId)) return preferTabId;
 
-  const tabs = await chrome.tabs.query({});
+  const tabs = (await chrome.tabs.query({})).filter(t => t.id != null);
+  const wants = await Promise.all(tabs.map(t => wantsCaptureTab(t.id)));
   let best = null;
   let bestScore = -1;
-  for (const tab of tabs) {
-    if (tab.id == null) continue;
-    const cfg = await getTabConfig(tab.id);
-    if (!self.DLPresets.wantsCapture(cfg)) continue;
-    let score = 0;
-    if (tab.audible) score += 100;
-    if (tab.active) score += 50;
+  tabs.forEach((tab, i) => {
+    if (!wants[i]) return;
+    const score = (tab.audible ? 100 : 0) + (tab.active ? 50 : 0);
     if (score > bestScore) {
       bestScore = score;
       best = tab.id;
     }
-  }
+  });
   return best;
-}
-
-/**
- * Soft handoff when capture can't start (e.g. no gesture yet): keep HQ preference,
- * protect via element path. Only permanently flip audioPath when `permanent` is true.
- */
-async function fallbackCaptureToElement(tabId, cfg, err, { permanent = false } = {}) {
-  if (permanent && (cfg.audioPath === 'auto' || cfg.audioPath === 'capture')) {
-    const fallback = self.DLPresets.migrateConfig({ ...cfg, audioPath: 'element', captureEnabled: false });
-    await setTabConfig(tabId, fallback);
-    const host = await tabHost(tabId);
-    if (host && !fallback.global) await setDomainConfig(host, fallback);
-    applyBadge(tabId, fallback, false);
-    await pushConfigToTab(tabId, fallback, { captureError: String(err?.message || err) });
-    return;
-  }
-  console.warn('tabCapture unavailable — soft element handoff', err);
-  applyBadge(tabId, cfg, false);
-  await pushConfigToTab(tabId, cfg);
 }
 
 /**
@@ -123,18 +95,12 @@ async function rebalanceCaptures(preferTabId = null, { force = false } = {}) {
   }
 
   const tabs = await chrome.tabs.query({});
-  for (const tab of tabs) {
-    if (tab.id == null || tab.id === owner) continue;
+  await Promise.all(tabs.map(async tab => {
+    if (tab.id == null || tab.id === owner) return;
     const cfg = await getTabConfig(tab.id);
-    if (!cfg.enabled && !self.DLPresets.wantsCapture(cfg)) {
-      applyBadge(tab.id, cfg, false);
-      continue;
-    }
-    if (self.DLPresets.wantsCapture(cfg) || cfg.enabled) {
-      applyBadge(tab.id, cfg, false);
-      await pushConfigToTab(tab.id, cfg);
-    }
-  }
+    applyBadge(tab.id, cfg, false);
+    if (cfg.enabled) await pushConfigToTab(tab.id, cfg);
+  }));
 
   if (owner == null) return;
 
@@ -146,8 +112,11 @@ async function rebalanceCaptures(preferTabId = null, { force = false } = {}) {
     try {
       await startTabCapture(owner);
     } catch (e) {
-      // Don't rewrite domain to element — popup / next focus can retry HQ.
-      await fallbackCaptureToElement(owner, cfg, e, { permanent: false });
+      // Soft handoff (e.g. no gesture yet): keep the HQ preference — popup / next
+      // focus can retry — and protect via the element path meanwhile.
+      console.warn('tabCapture unavailable — soft element handoff', e);
+      applyBadge(owner, cfg, false);
+      await pushConfigToTab(owner, cfg);
       return;
     }
   } else if (activeCaptures.has(owner)) {
@@ -183,9 +152,7 @@ async function startTabCapture(tabId) {
     const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tabId });
 
     const existingContexts = await chrome.runtime.getContexts({});
-    const offscreenDocument = existingContexts.find(c => c.contextType === 'OFFSCREEN_DOCUMENT');
-
-    if (!offscreenDocument) {
+    if (!existingContexts.some(c => c.contextType === 'OFFSCREEN_DOCUMENT')) {
       await chrome.offscreen.createDocument({
         url: 'offscreen.html',
         reasons: ['USER_MEDIA'],
@@ -193,21 +160,15 @@ async function startTabCapture(tabId) {
       });
     }
 
-    const config = await getTabConfig(tabId);
-    // Pass config in start-capture — streamId expires in seconds; don't rely on a
-    // second message before the worklet gets enabled/limitDB.
+    // Config travels with start-capture — streamId expires in seconds, so the
+    // worklet must not wait for a second message to get enabled/limitDB.
     const startResp = await chrome.runtime.sendMessage({
       type: 'start-capture',
       streamId,
       tabId,
-      config
+      config: await getTabConfig(tabId)
     });
-    if (startResp?.error) {
-      throw new Error(String(startResp.error));
-    }
-    try {
-      await chrome.runtime.sendMessage({ type: 'update-config', config });
-    } catch (_) { /* offscreen already has config from start-capture */ }
+    if (startResp?.error) throw new Error(String(startResp.error));
 
     activeCaptures.set(tabId, { streamId });
   } catch (error) {
@@ -227,4 +188,3 @@ async function stopTabCapture(tabId) {
     activeCaptures.delete(tabId);
   }
 }
-

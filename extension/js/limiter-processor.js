@@ -15,11 +15,11 @@
  * @module LimiterProcessor
  */
 
-/** @type {Object<string, {floor:number, releaseDbPerSec:number}>} */
+/** Release speed (dB/s) per strength — mirrors presets.js (worklet scope can't load it). */
 const LIMITER_PRESETS = Object.freeze({
-  soft: { floor: 0.05, releaseDbPerSec: 15 },
-  normal: { floor: 0.01, releaseDbPerSec: 8 },
-  strong: { floor: 0.003, releaseDbPerSec: 4 }
+  soft: { releaseDbPerSec: 15 },
+  normal: { releaseDbPerSec: 8 },
+  strong: { releaseDbPerSec: 4 }
 });
 
 /** Render quanta (blocks) of lookahead delay. ~10.7ms @48kHz — enough to fully duck before a transient hits. */
@@ -31,17 +31,15 @@ const LOOKAHEAD_BLOCKS = 4;
  * @param {Object} config
  * @param {number} sampleRateHz
  * @param {number} [blockSize=128]
- * @returns {{ceilingLin:number, floor:number, releaseDbPerBlock:number}}
+ * @returns {{ceilingLin:number, releaseDbPerBlock:number}}
  */
 function resolveLimiterParams(config, sampleRateHz, blockSize = 128) {
   const preset = LIMITER_PRESETS[config.limiterStrength] ?? LIMITER_PRESETS.normal;
   const limitDB = Number.isFinite(config.limitDB) ? config.limitDB : -20;
-  const floor = Number.isFinite(config.limiterFloor) ? config.limiterFloor : preset.floor;
   // `limiterRelease` is expressed in dB/sec (how fast gain recovers after ducking).
   const releaseDbPerSec = Number.isFinite(config.limiterRelease) ? config.limiterRelease : preset.releaseDbPerSec;
   return {
     ceilingLin: Math.pow(10, limitDB / 20),
-    floor,
     releaseDbPerBlock: releaseDbPerSec * (blockSize / sampleRateHz)
   };
 }
@@ -55,23 +53,33 @@ class LookaheadLimiter {
   /** @param {number} [lookaheadBlocks] */
   constructor(lookaheadBlocks = LOOKAHEAD_BLOCKS) {
     this.lookaheadBlocks = lookaheadBlocks;
+    /** Recycled slots — the audio thread must not allocate per block (GC pauses = clicks). */
+    this.pool = [];
     this.reset();
   }
 
   reset() {
     /** @type {Array<{block: Float32Array[], targetGain: number}>} */
     this.pending = [];
+    this.emitted = null;
     this.activeGain = 1;
     this.lastAppliedGain = 1;
     this.hasEmitted = false;
     this.lastDb = -Infinity;
   }
 
+  #takeSlot(channels, frames) {
+    const slot = this.pool.pop();
+    if (slot && slot.block.length === channels && slot.block[0].length === frames) return slot;
+    return { block: Array.from({ length: channels }, () => new Float32Array(frames)), targetGain: 1 };
+  }
+
   /**
    * @param {Float32Array[]} block - one render quantum, one Float32Array per channel (same length)
-   * @param {{ceilingLin:number, floor:number, releaseDbPerBlock:number}} params
-   * @returns {Float32Array[]|null} the delayed, gain-adjusted block to emit, or
-   *   null while the lookahead buffer is still filling (caller should emit silence)
+   * @param {{ceilingLin:number, releaseDbPerBlock:number}} params
+   * @returns {Float32Array[]|null} the delayed, gain-adjusted block to emit — valid only until the
+   *   next call (its buffers are recycled) — or null while the lookahead buffer is still filling
+   *   (caller should emit silence)
    */
   process(block, { ceilingLin, releaseDbPerBlock }) {
     let peak = 0;
@@ -83,15 +91,17 @@ class LookaheadLimiter {
     }
     this.lastDb = peak > 0 ? 20 * Math.log10(peak) : -Infinity;
 
-    // The hard ceiling takes precedence over the attack floor for extreme
-    // peaks; otherwise the configured floor could make output exceed the
-    // user's limit.
-    const ceilingGain = peak > 0 ? Math.min(1, ceilingLin / peak) : 1;
-    const targetGain = ceilingGain;
+    if (this.emitted) {
+      this.pool.push(this.emitted);
+      this.emitted = null;
+    }
     // Copy the block before buffering: the audio thread reuses input buffers
     // between process() calls, so holding the reference would read NEW audio
     // instead of the retained samples when the block is finally emitted.
-    this.pending.push({ block: block.map(channel => channel.slice()), targetGain });
+    const slot = this.#takeSlot(block.length, block[0].length);
+    for (let ch = 0; ch < block.length; ch++) slot.block[ch].set(block[ch]);
+    slot.targetGain = peak > 0 ? Math.min(1, ceilingLin / peak) : 1;
+    this.pending.push(slot);
 
     // The gain applied to whichever block we emit must already account for
     // every louder block still waiting in the lookahead window — that's what
@@ -107,23 +117,23 @@ class LookaheadLimiter {
 
     if (this.pending.length <= this.lookaheadBlocks) return null; // still filling the lookahead buffer at startup
 
-    const { block: outBlock } = this.pending.shift();
+    const out = this.pending.shift();
     // Avoid a unity-gain leak on the first emitted block after startup/reset.
     const startGain = this.hasEmitted ? this.lastAppliedGain : this.activeGain;
     const endGain = this.activeGain;
     this.lastAppliedGain = endGain;
     this.hasEmitted = true;
 
-    const frames = outBlock[0].length;
-    return outBlock.map(channel => {
-      const out = new Float32Array(frames);
+    const frames = out.block[0].length;
+    for (const channel of out.block) {
       for (let i = 0; i < frames; i++) {
         // Linear ramp across the block: click-free, and by now (thanks to the
         // lookahead) startGain and endGain are usually already very close.
-        out[i] = channel[i] * (startGain + (endGain - startGain) * (i / frames));
+        channel[i] *= startGain + (endGain - startGain) * (i / frames);
       }
-      return out;
-    });
+    }
+    this.emitted = out;
+    return out.block;
   }
 }
 
@@ -142,6 +152,7 @@ if (typeof AudioWorkletProcessor !== 'undefined') {
     constructor() {
       super();
       this.config = { enabled: false };
+      this.params = resolveLimiterParams(this.config, sampleRate);
       this.limiter = new LookaheadLimiter();
       this.blockCounter = 0;
       // Report metering/gain back to the main thread roughly every 25ms (~40Hz),
@@ -152,6 +163,7 @@ if (typeof AudioWorkletProcessor !== 'undefined') {
         if (event.data?.type === 'config') {
           const wasEnabled = this.config.enabled;
           this.config = { ...this.config, ...event.data.config };
+          this.params = resolveLimiterParams(this.config, sampleRate);
           // Dropping any buffered lookahead audio on enable/disable avoids a
           // stale chunk suddenly flushing out with the wrong gain applied.
           if (wasEnabled !== this.config.enabled) this.limiter.reset();
@@ -164,13 +176,7 @@ if (typeof AudioWorkletProcessor !== 'undefined') {
       const output = outputs[0];
       if (!input || !input.length || !output || !output.length) return true;
 
-      let outBlock = null;
-      if (this.config.enabled) {
-        const params = resolveLimiterParams(this.config, sampleRate);
-        outBlock = this.limiter.process(input, params);
-      } else {
-        this.limiter.reset();
-      }
+      const outBlock = this.config.enabled ? this.limiter.process(input, this.params) : null;
 
       for (let ch = 0; ch < output.length; ch++) {
         if (outBlock) {

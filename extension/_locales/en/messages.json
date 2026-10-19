@@ -79,17 +79,9 @@
     "message": "Limiter character",
     "description": "Label for strength presets"
   },
-  "floorLabel": {
-    "message": "Attack floor",
-    "description": "Label for attack floor slider"
-  },
   "releaseLabel": {
     "message": "Release speed",
     "description": "Label for release speed slider"
-  },
-  "floorTooltip": {
-    "message": "Attack preference. The hard ceiling always takes priority for extreme peaks.",
-    "description": "Tooltip explaining attack floor"
   },
   "releaseTooltip": {
     "message": "How fast volume recovers after a peak. Lower = slower recovery.",
@@ -146,6 +138,10 @@
     "message": "Best quality on another tab",
     "description": "Path fragment when HQ is on another tab"
   },
+  "statusPathUnavailable": {
+    "message": "Best quality paused — tap to resume",
+    "description": "Path fragment when HQ wants to run here but could not start"
+  },
   "statusBestQuality": {
     "message": "Protecting · Best quality",
     "description": "Legacy status when capture is on"
@@ -158,16 +154,8 @@
     "message": "Protecting · Fullscreen-friendly",
     "description": "Legacy status when element path is on"
   },
-  "hqExclusiveNote": {
-    "message": "Best quality follows the tab you're listening to. Other protected tabs stay limited in Fullscreen-friendly mode.",
-    "description": "Note about smart exclusive capture"
-  },
-  "captureFallback": {
-    "message": "Best quality unavailable — using Fullscreen-friendly mode.",
-    "description": "Shown when tab capture fails"
-  },
   "backupLabel": { "message": "Backup", "description": "Export/import section" },
-  "fineTuneLabel": { "message": "Fine tune", "description": "Floor/release section" },
+  "fineTuneLabel": { "message": "Fine tune", "description": "Release section" },
   "behaviorLabel": { "message": "Behavior", "description": "Leveling/global section" },
   "themeLabel": { "message": "Theme", "description": "Theme section" },
   "themeAuto": { "message": "Auto", "description": "Follow system theme" },

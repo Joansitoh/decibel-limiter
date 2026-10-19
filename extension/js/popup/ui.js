@@ -4,7 +4,7 @@
 import { readTheme } from './theme.js';
 import { METER_MIN_DB, METER_MAX_DB, clampDB, dbToFrac, fmtDB } from './format.js';
 
-const { SCENARIO_PRESETS, STRENGTH_PRESETS, wantsCapture } = self.DLPresets;
+const { SCENARIO_PRESETS, STRENGTH_PRESETS } = self.DLPresets;
 
 export const WHATS_NEW_VERSION = 'hearing-guard-2026-10';
 export const WHATS_NEW_STORAGE_KEY = 'seenWhatsNew';
@@ -53,8 +53,6 @@ export function cacheElements() {
     presetSelector: qs('presetSelector'),
     pathSelector: qs('pathSelector'),
     themeSelector: qs('themeSelector'),
-    floorSlider: qs('floorSlider'),
-    floorValue: qs('floorValue'),
     releaseSlider: qs('releaseSlider'),
     releaseValue: qs('releaseValue'),
     globalToggle: qs('globalToggle'),
@@ -67,8 +65,6 @@ export function cacheElements() {
     domainSavedBadge: qs('domainSavedBadge'),
     forgetDomain: qs('forgetDomain'),
     statusLine: qs('statusLine'),
-    captureError: qs('captureError'),
-    hqNote: qs('hqNote'),
     reviewPrompt: qs('reviewPrompt'),
     reviewLink: qs('reviewLink'),
     reviewDismiss: qs('reviewDismiss'),
@@ -316,24 +312,27 @@ export function applyEnableUI(elements, enabled, animate = false) {
   }
 }
 
-export function applyHqNote(elements, _config, _captureActive = false) {
-  if (!elements.hqNote) return;
-  // Don't park a tall banner over Scenario — status line + path (i) already explain HQ exclusivity.
-  elements.hqNote.hidden = true;
-}
+/** Path label per HQ state (see Popup.hqState); 'off' = HQ not requested. */
+const HQ_LABEL_KEYS = {
+  off: 'pathElement',
+  active: 'pathCapture',
+  elsewhere: 'statusPathStandby',
+  unavailable: 'statusPathUnavailable'
+};
 
-export function applyPathUI(elements, config, captureActive = false) {
-  const hq = wantsCapture(config);
-  elements.pathToggle.classList.toggle('enabled', hq);
-  elements.pathToggle.setAttribute('aria-pressed', String(hq));
+export function applyPathUI(elements, config, hq = 'off') {
+  // Icon/label show the preference (also while off); the highlight shows HQ actually requested.
+  const prefersHq = config.audioPath !== 'element';
+  elements.pathToggle.classList.toggle('enabled', hq !== 'off');
+  elements.pathToggle.setAttribute('aria-pressed', String(prefersHq));
   const hqIcon = elements.pathToggle.querySelector('.icon-hq');
   const fsIcon = elements.pathToggle.querySelector('.icon-fs');
-  if (hqIcon) hqIcon.hidden = !hq;
-  if (fsIcon) fsIcon.hidden = hq;
+  if (hqIcon) hqIcon.hidden = !prefersHq;
+  if (fsIcon) fsIcon.hidden = prefersHq;
   if (elements.pathChipLabel) {
-    elements.pathChipLabel.textContent = chrome.i18n.getMessage(hq ? 'pathCapture' : 'pathElement');
+    const key = !prefersHq ? 'pathElement' : hq === 'off' ? 'pathCapture' : HQ_LABEL_KEYS[hq];
+    elements.pathChipLabel.textContent = chrome.i18n.getMessage(key);
   }
-  applyHqNote(elements, config, captureActive);
 }
 
 export function applyDomainChip(elements, { host, domainSaved, global }) {
@@ -348,7 +347,7 @@ export function applyDomainChip(elements, { host, domainSaved, global }) {
   elements.forgetDomain.hidden = !domainSaved || global;
 }
 
-export function applyStatusLine(elements, { enabled, levelingEnabled, wantsHq, captureActive }, animate = false) {
+export function applyStatusLine(elements, { enabled, levelingEnabled, hq }, animate = false) {
   const el = elements.statusLine;
   if (!el) return;
   let next;
@@ -357,11 +356,7 @@ export function applyStatusLine(elements, { enabled, levelingEnabled, wantsHq, c
   } else {
     const mode = chrome.i18n.getMessage(levelingEnabled ? 'statusModeEven' : 'statusModePeaks')
       || (levelingEnabled ? 'Evening volume' : 'Peaks only');
-    let path;
-    if (wantsHq && captureActive) path = chrome.i18n.getMessage('pathCapture') || 'Best quality';
-    else if (wantsHq && !captureActive) path = chrome.i18n.getMessage('statusPathStandby') || 'Best quality on another tab';
-    else path = chrome.i18n.getMessage('pathElement') || 'Fullscreen-friendly';
-    next = `${mode} · ${path}`;
+    next = `${mode} · ${chrome.i18n.getMessage(HQ_LABEL_KEYS[hq] ?? 'pathElement')}`;
   }
   if (next === el.textContent) return;
 
@@ -424,40 +419,29 @@ export function updatePathSelector(elements, audioPath) {
   });
 }
 
+function paintRelease(elements, release) {
+  if (!elements.releaseSlider) return;
+  elements.releaseSlider.value = release;
+  if (elements.releaseValue) elements.releaseValue.textContent = `${release} dB/s`;
+}
+
 export function syncSlidersFromPreset(elements, config, preset) {
   const p = STRENGTH_PRESETS[preset];
   if (!p) return;
-  config.limiterFloor = p.floor;
   config.limiterRelease = p.release;
-  if (elements.floorSlider) {
-    elements.floorSlider.value = Math.round(p.floor * 1000);
-    if (elements.floorValue) elements.floorValue.textContent = p.floor.toFixed(3);
-  }
-  if (elements.releaseSlider) {
-    elements.releaseSlider.value = p.release;
-    if (elements.releaseValue) elements.releaseValue.textContent = `${p.release} dB/s`;
-  }
+  paintRelease(elements, p.release);
 }
 
 export function syncAllUI(ctx) {
-  const { elements, config, host, domainSaved, captureActive } = ctx;
+  const { elements, config, host, domainSaved, hq } = ctx;
   paintCeiling(elements, config.limitDB);
   applyEnableUI(elements, config.enabled);
-  applyPathUI(elements, config, captureActive);
+  applyPathUI(elements, config, hq);
   updatePathSelector(elements, config.audioPath);
   updateScenarioButtons(elements, config.scenario);
-  const isKnown = ['soft', 'normal', 'strong'].includes(config.limiterStrength);
+  const isKnown = config.limiterStrength in STRENGTH_PRESETS;
   if (isKnown) syncSlidersFromPreset(elements, config, config.limiterStrength);
-  else {
-    if (elements.floorSlider) {
-      elements.floorSlider.value = Math.round(config.limiterFloor * 1000);
-      if (elements.floorValue) elements.floorValue.textContent = config.limiterFloor.toFixed(3);
-    }
-    if (elements.releaseSlider) {
-      elements.releaseSlider.value = config.limiterRelease;
-      if (elements.releaseValue) elements.releaseValue.textContent = `${config.limiterRelease} dB/s`;
-    }
-  }
+  else paintRelease(elements, config.limiterRelease);
   updatePresetButtons(elements, isKnown ? config.limiterStrength : 'custom');
   applyGlobalToggleUI(elements, config.global);
   applyLevelingUI(elements, config.levelingEnabled);
@@ -466,8 +450,7 @@ export function syncAllUI(ctx) {
   applyStatusLine(elements, {
     enabled: config.enabled,
     levelingEnabled: config.levelingEnabled,
-    wantsHq: wantsCapture(config),
-    captureActive
+    hq
   });
 }
 

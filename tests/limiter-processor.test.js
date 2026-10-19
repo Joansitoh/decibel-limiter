@@ -32,7 +32,7 @@ function run(limiter, amplitudes, params) {
   const emitted = [];
   for (const amp of amplitudes) {
     const out = limiter.process(makeBlock(amp), params);
-    if (out) emitted.push(out[0]);
+    if (out) emitted.push(out[0].slice()); // returned buffers are recycled on the next call
   }
   return emitted;
 }
@@ -57,7 +57,7 @@ function run(limiter, amplitudes, params) {
 {
   const limiter = new LookaheadLimiter(4);
   const params = resolveLimiterParams({ limitDB: -20, limiterStrength: 'normal' }, SAMPLE_RATE, BLOCK_SIZE);
-  const targetGainForSpike = Math.max(params.floor, Math.min(1, params.ceilingLin / 0.9));
+  const targetGainForSpike = Math.min(1, params.ceilingLin / 0.9);
 
   const amplitudes = [0.05, 0.05, 0.05, 0.05, 0.05, 0.9, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05];
   for (const amp of amplitudes) limiter.process(makeBlock(amp), params);
@@ -78,7 +78,7 @@ function run(limiter, amplitudes, params) {
   }
 }
 
-// --- Extreme peaks still respect the ceiling when a floor is configured ---
+// --- Extreme peaks still respect a very low ceiling ---
 {
   const limiter = new LookaheadLimiter(4);
   const params = resolveLimiterParams({ limitDB: -60, limiterStrength: 'soft' }, SAMPLE_RATE, BLOCK_SIZE);
@@ -88,7 +88,7 @@ function run(limiter, amplitudes, params) {
     for (let i = 0; i < block.length; i++) maxOutput = Math.max(maxOutput, Math.abs(block[i]));
   }
   assert.ok(maxOutput <= params.ceilingLin + 1e-6,
-    `configured floor must not override the ceiling (${params.ceilingLin}), got ${maxOutput}`);
+    `extreme peaks must respect the ceiling (${params.ceilingLin}), got ${maxOutput}`);
 }
 
 // --- Silence produces silence, unity gain ---
@@ -98,6 +98,18 @@ function run(limiter, amplitudes, params) {
   const emitted = run(limiter, new Array(10).fill(0), params);
   for (const block of emitted) for (let i = 0; i < block.length; i++) assert.strictEqual(block[i], 0);
   assert.strictEqual(limiter.activeGain, 1, 'silence must not trigger any gain reduction');
+}
+
+// --- Steady state recycles buffers instead of allocating per block ---
+{
+  const limiter = new LookaheadLimiter(4);
+  const params = resolveLimiterParams({ limitDB: -20 }, SAMPLE_RATE, BLOCK_SIZE);
+  const seen = new Set();
+  for (let i = 0; i < 50; i++) {
+    const out = limiter.process(makeBlock(0.5), params);
+    if (out) seen.add(out[0]);
+  }
+  assert.ok(seen.size <= 6, `expected a small recycled buffer set, got ${seen.size} distinct buffers`);
 }
 
 console.log('limiter-processor.test.js: all checks passed');

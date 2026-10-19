@@ -60,20 +60,20 @@ class Popup {
     this.host = null;
     this.domainSaved = false;
     this.captureActive = false;
+    this.hqTabId = null;
     this.config = migrateConfig({});
     this.currentDB = null;
-    this.averageDB = null;
     this.currentGainDB = null;
     this.lastRender = 0;
-    this.meterAnimId = null;
     this.displayedDB = null;
     this.dragging = false;
     this.elements = {};
     this.coachmarkStepIndex = 0;
     this.gainVisible = { value: false };
+    this.saving = null;
+    this.saveQueued = false;
 
     document.addEventListener('DOMContentLoaded', () => this.init());
-    window.addEventListener('unload', () => this.cleanup());
   }
 
   async init() {
@@ -87,6 +87,9 @@ class Popup {
     this.listenBackground();
     await this.identifyTab();
     await this.loadConfig();
+    // Opening the popup invokes the extension on this tab, which is exactly what
+    // tabCapture needed when the SW tried HQ on its own (site memory, tab switch).
+    if (this.hqState() === 'unavailable') this.saveConfig();
     this.requestDB();
     this.startMeterLoop();
     playIntro(this.elements);
@@ -100,22 +103,33 @@ class Popup {
       config: this.config,
       host: this.host,
       domainSaved: this.domainSaved,
-      captureActive: this.captureActive
+      hq: this.hqState()
     };
+  }
+
+  /** 'off' | 'active' (this tab) | 'elsewhere' (another tab really holds it) | 'unavailable' */
+  hqState() {
+    if (!wantsCapture(this.config)) return 'off';
+    if (this.captureActive) return 'active';
+    return this.hqTabId != null && this.hqTabId !== this.tabId ? 'elsewhere' : 'unavailable';
+  }
+
+  /** Runtime capture fields from a SW tab-state response. */
+  applyCaptureState(resp) {
+    this.captureActive = !!resp.captureActive;
+    this.hqTabId = resp.hqTabId ?? null;
   }
 
   statusArgs() {
     return {
       enabled: this.config.enabled,
       levelingEnabled: this.config.levelingEnabled,
-      wantsHq: wantsCapture(this.config),
-      captureActive: this.captureActive
+      hq: this.hqState()
     };
   }
 
-  refreshUI(animateStatus = false) {
+  refreshUI() {
     syncAllUI(this.uiCtx());
-    if (animateStatus) applyStatusLine(this.elements, this.statusArgs(), true);
   }
 
   async identifyTab() {
@@ -130,25 +144,43 @@ class Popup {
   }
 
   async loadConfig() {
-    const cfg = await readStoredConfig(this.tabId);
+    const cfg = await readStoredConfig(this.tabId, this.host);
     this.config = migrateConfig(cfg);
     this.host = cfg.host || this.host || null;
     this.domainSaved = !!cfg.domainSaved;
-    this.captureActive = !!cfg.captureActive;
+    this.applyCaptureState(cfg);
     this.refreshUI();
-    if (cfg.captureError && this.elements.captureError) {
-      this.elements.captureError.hidden = false;
-      this.elements.captureError.textContent = chrome.i18n.getMessage('captureFallback') || cfg.captureError;
-    }
   }
 
-  async saveConfig() {
-    this.config = migrateConfig(this.config);
-    const resp = await persistConfig(this.tabId, this.config, this.host);
-    if (!resp) return;
+  /**
+   * Coalesced save: one SW round-trip in flight, only the latest state queued.
+   * Fader/slider drags fire per pixel; each save rebalances every tab in the SW.
+   */
+  saveConfig() {
+    if (this.saving) {
+      this.saveQueued = true;
+      return this.saving;
+    }
+    this.saving = (async () => {
+      try {
+        do {
+          this.saveQueued = false;
+          this.config = migrateConfig(this.config);
+          const resp = await persistConfig(this.tabId, this.config, this.host);
+          // A newer edit is queued — this response is already stale.
+          if (resp && !this.saveQueued) this.applySaveResponse(resp);
+        } while (this.saveQueued);
+      } finally {
+        this.saving = null;
+      }
+    })();
+    return this.saving;
+  }
+
+  applySaveResponse(resp) {
     this.host = resp.host || this.host;
     this.domainSaved = !!resp.domainSaved;
-    this.captureActive = !!resp.captureActive;
+    this.applyCaptureState(resp);
     applyDomainChip(this.elements, {
       host: this.host,
       domainSaved: this.domainSaved,
@@ -160,7 +192,7 @@ class Popup {
       this.config.captureEnabled = !!resp.captureEnabled;
       updatePathSelector(this.elements, this.config.audioPath);
     }
-    applyPathUI(this.elements, this.config, this.captureActive);
+    applyPathUI(this.elements, this.config, this.hqState());
   }
 
   setLimit(db) {
@@ -246,15 +278,13 @@ class Popup {
 
     el.pathToggle.addEventListener('click', e => {
       e.stopPropagation();
-      if (wantsCapture(this.config) && !this.captureActive) {
-        // Tab wants HQ but another tab holds it. Clicking claims HQ for this tab!
-        this.config.audioPath = 'capture';
-      } else {
-        const hq = wantsCapture(this.config);
-        this.config.audioPath = hq ? 'element' : 'capture';
-      }
+      const prefersHq = this.config.audioPath !== 'element';
+      // HQ preferred but not running here (another tab / unavailable): clicking claims or
+      // retries HQ instead of switching it off.
+      const waiting = ['elsewhere', 'unavailable'].includes(this.hqState());
+      this.config.audioPath = prefersHq && !waiting ? 'element' : 'capture';
       this.config.captureEnabled = wantsCapture(this.config);
-      applyPathUI(el, this.config, this.captureActive);
+      applyPathUI(el, this.config, this.hqState());
       updatePathSelector(el, this.config.audioPath);
       applyStatusLine(el, this.statusArgs(), true);
       punch(el.pathToggle, el.limitTab);
@@ -305,7 +335,7 @@ class Popup {
       this.config.captureEnabled = wantsCapture(this.config);
       this.config.scenario = 'custom';
       updatePathSelector(el, this.config.audioPath);
-      applyPathUI(el, this.config, this.captureActive);
+      applyPathUI(el, this.config, this.hqState());
       updateScenarioButtons(el, 'custom');
       this.saveConfig();
     });
@@ -318,17 +348,6 @@ class Popup {
       this.config.limiterStrength = preset;
       this.config.scenario = 'custom';
       updatePresetButtons(el, preset);
-      updateScenarioButtons(el, 'custom');
-      this.saveConfig();
-    });
-
-    el.floorSlider?.addEventListener('input', e => {
-      const val = +e.target.value / 1000;
-      this.config.limiterFloor = val;
-      if (el.floorValue) el.floorValue.textContent = val.toFixed(3);
-      this.config.limiterStrength = 'custom';
-      this.config.scenario = 'custom';
-      updatePresetButtons(el, 'custom');
       updateScenarioButtons(el, 'custom');
       this.saveConfig();
     });
@@ -431,19 +450,9 @@ class Popup {
         const text = await file.text();
         const payload = JSON.parse(text);
         if (!payload || typeof payload !== 'object') throw new Error('Invalid file');
-        const writes = {};
-        if (payload.global_config && typeof payload.global_config === 'object') {
-          writes.global_config = payload.global_config;
-        }
-        if (payload.domain_configs && typeof payload.domain_configs === 'object') {
-          writes.domain_configs = payload.domain_configs;
-        }
-        if (Object.keys(writes).length) await chrome.storage.local.set(writes);
-        if (!payload.global_config) await chrome.storage.local.remove('global_config');
-        // Ask SW to push config to open tabs (best-effort).
-        try {
-          await chrome.runtime.sendMessage({ type: 'importSettings', payload });
-        } catch (_) { /* storage already written */ }
+        // SW validates, writes storage and pushes the result to open tabs.
+        const resp = await chrome.runtime.sendMessage({ type: 'importSettings', payload });
+        if (!resp?.success) throw new Error(resp?.error || 'Import failed');
         await this.loadConfig();
         flashBtn(btn, true);
       } catch (err) {
@@ -468,14 +477,12 @@ class Popup {
   }
 
   listenBackground() {
-    chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-      if (msg.type === 'updateDB' && msg.tabId === this.tabId) {
-        if (typeof msg.db === 'number') this.currentDB = msg.db;
-        if (typeof msg.averageDB === 'number') this.averageDB = msg.averageDB;
-        if (typeof msg.gainDB === 'number') this.currentGainDB = msg.gainDB;
-      }
-      sendResponse({ received: true });
-      return true;
+    // Listen only — never sendResponse: the popup also sees content/offscreen traffic
+    // (pageReady, start-capture…) and answering first would hijack the SW's reply.
+    chrome.runtime.onMessage.addListener(msg => {
+      if (msg.type !== 'updateDB' || msg.tabId !== this.tabId) return;
+      if (typeof msg.db === 'number') this.currentDB = msg.db;
+      if (typeof msg.gainDB === 'number') this.currentGainDB = msg.gainDB;
     });
   }
 
@@ -510,20 +517,13 @@ class Popup {
   }
 
   async requestDB() {
-    try {
-      const response = await requestCurrentDB(this.tabId);
-      if (response) {
-        this.currentDB = typeof response.db === 'number' ? response.db : null;
-        this.averageDB = typeof response.averageDB === 'number' ? response.averageDB : null;
-      }
-    } catch (err) {
-      console.warn('Error requesting current DB:', err);
-    }
+    const response = await requestCurrentDB(this.tabId);
+    if (typeof response?.db === 'number') this.currentDB = response.db;
   }
 
   startMeterLoop() {
     const step = (now) => {
-      this.meterAnimId = requestAnimationFrame(step);
+      requestAnimationFrame(step);
       const isActive = this.config.enabled;
       const raw = isActive ? this.currentDB : null;
       let target = (raw === null || !isFinite(raw)) ? null : raw;
@@ -544,11 +544,7 @@ class Popup {
         setGainVisible: show => setGainVisible(this.elements, this.gainVisible, show)
       });
     };
-    this.meterAnimId = requestAnimationFrame(step);
-  }
-
-  cleanup() {
-    if (this.meterAnimId) cancelAnimationFrame(this.meterAnimId);
+    requestAnimationFrame(step);
   }
 }
 

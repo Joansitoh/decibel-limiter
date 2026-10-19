@@ -49,6 +49,7 @@
         "<all_urls>"
       ],
       "js": [
+        "js/presets.js",
         "js/content.js"
       ]
     }

@@ -122,8 +122,6 @@
     </main>
 
     <div class="foot-block">
-      <p id="captureError" class="banner warn" hidden></p>
-      <p id="hqNote" class="banner" hidden data-i18n="hqExclusiveNote">Best quality follows the tab you're listening to. Other protected tabs stay limited in Fullscreen-friendly mode.</p>
       <footer class="foot">
         <button type="button" id="pathToggle" class="path" aria-pressed="false" data-i18n-title="pathToggleTitle">
           <svg class="icon-hq" width="16" height="16" aria-hidden="true"><use href="#i-hq"/></svg>
@@ -185,14 +183,6 @@
 
       <p class="group-label" data-i18n="fineTuneLabel">Fine tune</p>
       <div class="group stack">
-        <div class="row-static">
-          <span class="label-group">
-            <span data-i18n="floorLabel">Minimum gain</span>
-            <span class="tip"><svg width="12" height="12" aria-hidden="true"><use href="#i-info"/></svg><span class="tooltip" data-i18n="floorTooltip">Minimum gain kept during a peak.</span></span>
-          </span>
-          <span id="floorValue" class="mono">0.010</span>
-        </div>
-        <input type="range" id="floorSlider" class="slider" min="1" max="100" step="1" value="10" />
         <div class="row-static">
           <span class="label-group">
             <span data-i18n="releaseLabel">Release speed</span>

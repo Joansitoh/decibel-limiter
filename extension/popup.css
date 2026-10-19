@@ -623,22 +623,7 @@
   .list button.active .meta { color: var(--teal-ink); }
   .list button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
   
-  /* ——— Banners + footer ——— */
-  .banner {
-    margin: 0;
-    padding: 7px 10px;
-    border-radius: 10px;
-    font-size: 11px;
-    line-height: 1.35;
-    color: var(--ink-2);
-    background: var(--surface-2);
-    flex-shrink: 0;
-    text-wrap: pretty;
-  }
-  .banner[hidden] { display: none !important; }
-  .banner.warn { color: var(--coral-ink); background: var(--warn-bg); }
-
-  /* Keep note + path chip as one foot block so scenarios stay reachable */
+  /* ——— Footer ——— */
   .foot-block {
     display: flex;
     flex-direction: column;
@@ -646,9 +631,6 @@
     flex-shrink: 0;
     padding-top: 10px;
     border-top: 1px solid var(--line);
-  }
-  .foot-block .banner {
-    margin: 0;
   }
   
   .foot {

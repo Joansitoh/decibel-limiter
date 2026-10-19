@@ -117,7 +117,7 @@ A limiter that only reacts *after* seeing a loud sample always lets that sample 
 1. Incoming audio is buffered for `LOOKAHEAD_BLOCKS` render quanta (~10.7ms @48kHz) before being emitted.
 2. For each buffered block still waiting to be output, the limiter knows its peak in advance, so it can compute the gain required to respect the configured ceiling across the lookahead window.
 3. **Attack** is instant: if a louder block is detected, gain drops immediately — before that block is actually emitted — so it never overshoots the ceiling.
-4. **Release** ramps up gradually (dB/sec, per strength preset) once no louder block remains in the window. The ceiling always takes precedence over the attack-floor preference for extreme peaks.
+4. **Release** ramps up gradually (dB/sec, per strength preset) once no louder block remains in the window.
 5. Gain is interpolated sample-by-sample across each emitted block (linear ramp from the previous applied gain), so there are no clicks — and because of the lookahead, the ramp's start and end are usually already close together by the time a loud block is actually emitted.
 
 See `LookaheadLimiter.process()` in `extension/js/limiter-processor.js` and its self-check in `tests/limiter-processor.test.js` (asserts the output literally never exceeds the ceiling, even right at a sudden peak).
@@ -125,7 +125,7 @@ See `LookaheadLimiter.process()` in `extension/js/limiter-processor.js` and its 
 ### Key Features
 
 - **Real Lookahead**: gain reduction is ramped in before a loud transient reaches the output, not after
-- **Per-strength Presets**: `floor` (max attenuation) and `release` (dB/sec recovery speed) — soft/normal/strong
+- **Per-strength Presets**: `release` (dB/sec recovery speed) — soft/normal/strong
 - **Safety Compressor**: Native `DynamicsCompressorNode` (threshold -3dB, ratio 20:1, ~3ms attack) after the limiter, as a last-resort net
 - **Silence Detection**: Ignores paused/inaudible content
 - **Live Gain Readout**: the worklet reports the currently applied gain back to the popup ~20 times/sec
@@ -352,7 +352,7 @@ Un limitador que solo reacciona *después* de ver una muestra fuerte siempre dej
 1. El audio entrante se retiene en un buffer durante `LOOKAHEAD_BLOCKS` bloques de renderizado (~10.7ms @48kHz) antes de emitirse.
 2. Para cada bloque retenido que aún espera ser emitido, el limitador ya conoce su pico por adelantado, así que puede calcular la ganancia necesaria para respetar el techo configurado en toda la ventana de lookahead.
 3. El **ataque** es instantáneo: si se detecta un bloque más fuerte, la ganancia baja de inmediato — antes de que ese bloque se emita realmente — así nunca se pasa del techo.
-4. La **recuperación** sube gradualmente (dB/seg, según el preset de fuerza) una vez que ya no queda ningún bloque más fuerte en la ventana. El techo siempre tiene prioridad sobre la preferencia de suelo de ataque ante picos extremos.
+4. La **recuperación** sube gradualmente (dB/seg, según el preset de fuerza) una vez que ya no queda ningún bloque más fuerte en la ventana.
 5. La ganancia se interpola muestra a muestra dentro de cada bloque emitido (rampa lineal desde la última ganancia aplicada), así que no hay clics — y gracias al lookahead, el inicio y el final de esa rampa suelen estar ya muy cerca cuando el bloque fuerte se emite realmente.
 
 Ver `LookaheadLimiter.process()` en `extension/js/limiter-processor.js` y su self-check en `tests/limiter-processor.test.js` (verifica que la salida literalmente nunca supera el techo, incluso justo en un pico repentino).
@@ -360,7 +360,7 @@ Ver `LookaheadLimiter.process()` en `extension/js/limiter-processor.js` y su sel
 ### Características Clave
 
 - **Lookahead Real**: la reducción de ganancia se rampa antes de que un transitorio fuerte llegue a la salida, no después
-- **Presets por Fuerza**: `floor` (atenuación máxima) y `release` (velocidad de recuperación en dB/seg) — suave/normal/fuerte
+- **Presets por Fuerza**: `release` (velocidad de recuperación en dB/seg) — suave/normal/fuerte
 - **Compresor de Seguridad**: `DynamicsCompressorNode` nativo (umbral -3dB, ratio 20:1, ataque ~3ms) tras el limitador, como red de último recurso
 - **Detección de Silencio**: ignora contenido en pausa/inaudible
 - **Lectura de Ganancia en Vivo**: el worklet reporta la ganancia actualmente aplicada al popup ~20 veces/seg

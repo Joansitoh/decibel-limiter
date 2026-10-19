@@ -1,13 +1,15 @@
 /**
  * Single source of truth for scenarios, strength presets, and config helpers.
- * Loaded via importScripts (background) or <script> (popup).
+ * Loaded via importScripts (background), <script> (popup, offscreen) or as the
+ * first content script.
  * @module presets
  */
 (function (root) {
+  /** Release speed (dB/s) per limiter character. */
   const STRENGTH_PRESETS = Object.freeze({
-    soft: { floor: 0.05, release: 15 },
-    normal: { floor: 0.01, release: 8 },
-    strong: { floor: 0.003, release: 4 }
+    soft: { release: 15 },
+    normal: { release: 8 },
+    strong: { release: 4 }
   });
 
   /** Scenario presets — product-facing. Music keeps dynamics (no leveling). */
@@ -49,6 +51,31 @@
     social: { threshold: -45, knee: 4, ratio: 12, attack: 0.003, release: 0.2, makeup: 2.2 }
   });
 
+  /** Last-resort net after the lookahead limiter (both audio paths). */
+  const SAFETY_COMPRESSOR = Object.freeze({ threshold: -3, knee: 0, ratio: 20, attack: 0.003, release: 0.25 });
+
+  /** Leveling profile for a config, or null when leveling is off. */
+  function levelingProfileFor(cfg) {
+    return cfg?.levelingEnabled ? LEVELING_PROFILES[cfg.levelingProfile] ?? null : null;
+  }
+
+  /** Point a leveling compressor + makeup gain at a profile, or make them transparent (null). */
+  function applyLeveling(compressor, makeup, profile) {
+    if (!compressor || !makeup) return;
+    if (!profile) {
+      compressor.threshold.value = 0;
+      compressor.ratio.value = 1;
+      makeup.gain.value = 1;
+      return;
+    }
+    compressor.threshold.value = profile.threshold;
+    compressor.knee.value = profile.knee;
+    compressor.ratio.value = profile.ratio;
+    compressor.attack.value = profile.attack;
+    compressor.release.value = profile.release;
+    makeup.gain.value = profile.makeup;
+  }
+
   const DEFAULT_CONFIG = Object.freeze({
     enabled: false,
     limitDB: -20,
@@ -56,7 +83,6 @@
     captureEnabled: false,
     scenario: 'balanced',
     limiterStrength: 'normal',
-    limiterFloor: 0.01,
     limiterRelease: 8,
     levelingEnabled: true,
     levelingProfile: 'balanced',
@@ -70,7 +96,7 @@
   function applyStrength(cfg, strength) {
     const p = STRENGTH_PRESETS[strength];
     if (!p) return cfg;
-    return { ...cfg, limiterStrength: strength, limiterFloor: p.floor, limiterRelease: p.release };
+    return { ...cfg, limiterStrength: strength, limiterRelease: p.release };
   }
 
   function applyScenario(scenario) {
@@ -99,6 +125,7 @@
   function migrateConfig(raw) {
     if (!raw || typeof raw !== 'object') return { ...DEFAULT_CONFIG };
     const cfg = { ...DEFAULT_CONFIG, ...raw };
+    delete cfg.limiterFloor; // removed setting — the brickwall ceiling always overrode it
     if (!AUDIO_PATHS.has(cfg.audioPath)) {
       cfg.audioPath = raw.captureEnabled ? 'capture' : (DEFAULT_CONFIG.audioPath);
     }
@@ -133,12 +160,15 @@
     STRENGTH_PRESETS,
     SCENARIO_PRESETS,
     LEVELING_PROFILES,
+    SAFETY_COMPRESSOR,
     DEFAULT_CONFIG,
     AUDIO_PATHS,
     SCENARIOS,
     LIMITER_STRENGTHS,
     applyStrength,
     applyScenario,
+    levelingProfileFor,
+    applyLeveling,
     wantsCapture,
     migrateConfig,
     normalizeHost,

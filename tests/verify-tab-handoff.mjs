@@ -57,10 +57,15 @@ function loadWorkerScripts() {
         return t;
       },
       async query() { return [...this._tabs.values()]; },
+      pushed: [],
       sendMessage(tabId, msg, cb) {
+        this.pushed.push({ tabId, msg });
         if (typeof cb === 'function') cb({});
         return Promise.resolve({});
-      }
+      },
+      onRemoved: { addListener() {} },
+      onActivated: { addListener() {} },
+      onUpdated: { addListener() {} }
     },
     action: {
       badges: new Map(),
@@ -69,6 +74,10 @@ function loadWorkerScripts() {
       setTitle() {}
     },
     runtime: {
+      listeners: [],
+      onMessage: { addListener(fn) { chrome.runtime.listeners.push(fn); } },
+      onInstalled: { addListener() {} },
+      onStartup: { addListener() {} },
       async sendMessage(msg) { captureCalls.push(msg); },
       async getContexts() { return [{ contextType: 'OFFSCREEN_DOCUMENT' }]; }
     },
@@ -101,7 +110,10 @@ function loadWorkerScripts() {
     Infinity,
     undefined,
     parseInt,
-    parseFloat
+    parseFloat,
+    Date,
+    setTimeout,
+    importScripts() {} // main.js deps are run explicitly below
   };
   sandbox.self = sandbox;
   sandbox.globalThis = sandbox;
@@ -194,6 +206,34 @@ assert(
   'failed capture does not rewrite domain to element'
 );
 assert(chrome.action.badges.get(2) === 'ON', `soft handoff still shows ON badge (got "${chrome.action.badges.get(2)}")`);
+
+// Service worker message routing (main.js on top of the same scripts)
+vm.runInNewContext(fs.readFileSync(path.join(extJs, 'background', 'main.js'), 'utf8'), sandbox, { filename: 'main.js' });
+const [bgListener] = chrome.runtime.listeners;
+const ask = (msg, sender = {}) => new Promise(resolve => {
+  const kept = bgListener(msg, sender, resolve);
+  if (kept !== true) resolve('<not handled>');
+});
+await new Promise(r => setTimeout(r, 0)); // let hydrateActiveTab settle
+
+assert(await ask({ type: 'start-capture' }) === '<not handled>', 'SW ignores offscreen traffic instead of holding the channel');
+
+chrome.tabs.pushed.length = 0;
+const offState = await ask({ type: 'setConfig', tabId: 2, enabled: false, global: true, audioPath: 'capture' });
+assert(offState?.success === true && offState.enabled === false, 'setConfig returns resulting tab state');
+const offPushed = id => chrome.tabs.pushed.some(p => p.tabId === id && p.msg.type === 'setConfig' && p.msg.enabled === false);
+assert([1, 2, 3].every(offPushed), 'global switch-off reaches every tab content script');
+
+assert(offState.hqTabId === null, `no HQ owner reported when nothing captures (got ${offState.hqTabId})`);
+sandbox.__capture.activeCaptures.set(1, { streamId: 'stream-1' });
+const viewFrom2 = await ask({ type: 'getConfig', tabId: 2 });
+assert(viewFrom2.hqTabId === 1 && viewFrom2.captureActive === false, 'getConfig reports the real HQ owner tab');
+sandbox.__capture.activeCaptures.clear();
+
+await ask({ type: 'setConfig', tabId: 2, enabled: true, global: true, scenario: 'night', audioPath: 'element' });
+await sandbox.cycleScenario(2);
+const afterCycle = await sandbox.__storage.getTabConfig(2);
+assert(afterCycle.scenario === 'balanced',`shortcut scenario cycle persists in global mode (got ${afterCycle.scenario})`);
 
 // Popup ESM (stub DOM)
 globalThis.self = globalThis;
