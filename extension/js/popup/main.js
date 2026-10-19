@@ -1,7 +1,7 @@
 /**
  * Popup app orchestrator — wires events; UI/config live in sibling modules.
  */
-import './theme.js';
+import { readTheme } from './theme.js';
 import {
   THEME_KEY,
   applyTheme,
@@ -30,7 +30,6 @@ import {
   updatePresetButtons,
   updateScenarioButtons,
   updatePathSelector,
-  syncSlidersFromPreset,
   syncAllUI,
   bindTooltips,
   bindFadeScrollbars,
@@ -306,10 +305,7 @@ class Popup {
     el.scenarioSelector?.addEventListener('click', e => {
       const btn = e.target.closest('[data-scenario]');
       if (!btn) return;
-      const scen = applyScenario(btn.dataset.scenario);
-      const enabled = this.config.enabled;
-      const global = this.config.global;
-      this.config = migrateConfig({ ...scen, enabled, global });
+      this.config = applyScenario(this.config, btn.dataset.scenario);
       this.refreshUI();
       punch(btn, el.limitTab, 1.03);
       const g = gsapRef();
@@ -319,46 +315,33 @@ class Popup {
       this.saveConfig();
     });
 
-    el.themeSelector?.addEventListener('click', e => {
-      const btn = e.target.closest('[data-theme-choice]');
-      if (!btn) return;
-      const choice = btn.dataset.themeChoice;
+    const setTheme = choice => {
       try { localStorage.setItem(THEME_KEY, choice); } catch (_) { /* ignore */ }
       applyTheme(choice);
       updateThemeButtons(el);
+    };
+    el.themeSelector?.addEventListener('click', e => {
+      const btn = e.target.closest('[data-theme-choice]');
+      if (btn) setTheme(btn.dataset.themeChoice);
     });
 
     el.pathSelector?.addEventListener('click', e => {
       const btn = e.target.closest('[data-path]');
       if (!btn) return;
+      // Path is independent of the scenario (same as the footer chip).
       this.config.audioPath = btn.dataset.path;
       this.config.captureEnabled = wantsCapture(this.config);
-      this.config.scenario = 'custom';
       updatePathSelector(el, this.config.audioPath);
       applyPathUI(el, this.config, this.hqState());
-      updateScenarioButtons(el, 'custom');
+      applyStatusLine(el, this.statusArgs(), true);
       this.saveConfig();
     });
 
     el.presetSelector?.addEventListener('click', e => {
       const btn = e.target.closest('[data-preset]');
       if (!btn) return;
-      const preset = btn.dataset.preset;
-      if (preset !== 'custom') syncSlidersFromPreset(el, this.config, preset);
-      this.config.limiterStrength = preset;
-      this.config.scenario = 'custom';
-      updatePresetButtons(el, preset);
-      updateScenarioButtons(el, 'custom');
-      this.saveConfig();
-    });
-
-    el.releaseSlider?.addEventListener('input', e => {
-      const val = +e.target.value;
-      this.config.limiterRelease = val;
-      if (el.releaseValue) el.releaseValue.textContent = `${val} dB/s`;
-      this.config.limiterStrength = 'custom';
-      this.config.scenario = 'custom';
-      updatePresetButtons(el, 'custom');
+      this.config = migrateConfig({ ...this.config, limiterStrength: btn.dataset.preset, scenario: 'custom' });
+      updatePresetButtons(el, this.config.limiterStrength);
       updateScenarioButtons(el, 'custom');
       this.saveConfig();
     });
@@ -374,9 +357,7 @@ class Popup {
       this.saveConfig();
     });
 
-    [el.evenVolumeToggle, el.levelingToggle].filter(Boolean).forEach(btn => {
-      btn.addEventListener('click', () => this.toggleLeveling());
-    });
+    el.evenVolumeToggle?.addEventListener('click', () => this.toggleLeveling());
 
     el.forgetDomain?.addEventListener('click', async () => {
       await chrome.runtime.sendMessage({ type: 'forgetDomain', tabId: this.tabId, host: this.host });
@@ -404,6 +385,7 @@ class Popup {
         const payload = {
           version: 1,
           exportedAt: new Date().toISOString(),
+          theme: readTheme(),
           global_config: data.global_config ?? null,
           domain_configs: data.domain_configs ?? {}
         };
@@ -453,6 +435,7 @@ class Popup {
         // SW validates, writes storage and pushes the result to open tabs.
         const resp = await chrome.runtime.sendMessage({ type: 'importSettings', payload });
         if (!resp?.success) throw new Error(resp?.error || 'Import failed');
+        if (['auto', 'light', 'dark'].includes(payload.theme)) setTheme(payload.theme);
         await this.loadConfig();
         flashBtn(btn, true);
       } catch (err) {
@@ -538,9 +521,7 @@ class Popup {
       renderMeter(this.elements, {
         displayDB: this.displayedDB,
         isActive,
-        limitDB: this.config.limitDB,
         currentGainDB: this.currentGainDB,
-        gainVisible: this.gainVisible.value,
         setGainVisible: show => setGainVisible(this.elements, this.gainVisible, show)
       });
     };

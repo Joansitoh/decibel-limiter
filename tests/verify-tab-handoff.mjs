@@ -30,6 +30,20 @@ assert(presets.wantsCapture({ enabled: false, audioPath: 'capture' }) === false,
 assert(presets.hostFromUrl('https://www.youtube.com/watch?v=1') === 'youtube.com', 'host strips www');
 assert(presets.hostFromUrl('https://music.youtube.com/') === 'music.youtube.com', 'music host distinct');
 
+// Config normalization (consistency audit 2026-10-19)
+const music = presets.applyScenario({ enabled: true, audioPath: 'element' }, 'music');
+assert(presets.migrateConfig({ ...music, levelingEnabled: true }).levelingProfile === 'balanced',
+  'enabling Even volume after Music gets a real leveling profile');
+assert(presets.applyScenario({ enabled: true, audioPath: 'element', global: true }, 'night').audioPath === 'element',
+  'scenario keeps the user audio path');
+assert(presets.applyScenario({ enabled: true, global: true }, 'night').enabled === true &&
+  presets.applyScenario({ enabled: true, global: true }, 'night').global === true, 'scenario keeps power + scope');
+assert(presets.migrateConfig({ audioPath: 'auto' }).audioPath === 'capture', 'removed Auto path migrates to capture');
+assert(presets.migrateConfig({ limiterStrength: 'custom', limiterRelease: 14 }).limiterStrength === 'soft',
+  'legacy custom release maps to nearest preset');
+assert(presets.migrateConfig({ limiterStrength: 'strong', limiterRelease: 30 }).limiterRelease === 4,
+  'release always follows the preset');
+
 function loadWorkerScripts() {
   const captureCalls = [];
   const chrome = {
@@ -67,11 +81,13 @@ function loadWorkerScripts() {
       onActivated: { addListener() {} },
       onUpdated: { addListener() {} }
     },
+    i18n: { getMessage: k => k },
     action: {
       badges: new Map(),
+      titles: new Map(),
       setBadgeText({ tabId, text }) { this.badges.set(tabId, text); },
       setBadgeBackgroundColor() {},
-      setTitle() {}
+      setTitle({ tabId, title }) { this.titles.set(tabId, title); }
     },
     runtime: {
       listeners: [],
@@ -225,6 +241,29 @@ const offPushed = id => chrome.tabs.pushed.some(p => p.tabId === id && p.msg.typ
 assert([1, 2, 3].every(offPushed), 'global switch-off reaches every tab content script');
 
 assert(offState.hqTabId === null, `no HQ owner reported when nothing captures (got ${offState.hqTabId})`);
+
+// Leaving global mode: tabs whose own config is off must be told too (not just badge).
+await ask({ type: 'setConfig', tabId: 2, enabled: true, global: true, audioPath: 'element' });
+chrome.tabs._tabs.set(4, { id: 4, url: 'https://example.com/', active: false, audible: false });
+chrome.storage.local._data.tab_cfg_4 = presets.migrateConfig({ enabled: false });
+chrome.tabs.pushed.length = 0;
+await ask({ type: 'setConfig', tabId: 2, enabled: true, global: false, audioPath: 'element' });
+assert(chrome.tabs.pushed.some(p => p.tabId === 4 && p.msg.enabled === false), 'leaving global mode pushes off-state to disabled tabs');
+
+// Badge title tells "paused" from "on another tab" (and is i18n).
+await ask({ type: 'setConfig', tabId: 2, enabled: true, global: false, audioPath: 'capture' });
+assert(/statusPathPaused/.test(chrome.action.titles.get(2)), `badge says paused when no tab captures (got ${chrome.action.titles.get(2)})`);
+sandbox.__capture.activeCaptures.set(1, { streamId: 'stream-1' });
+sandbox.__capture.applyBadge(2, await sandbox.__storage.getTabConfig(2), false);
+assert(/statusPathStandby/.test(chrome.action.titles.get(2)), 'badge says another tab only when one captures');
+sandbox.__capture.activeCaptures.clear();
+
+// Import merges site memory instead of replacing it.
+chrome.storage.local._data.domain_configs = { 'a.com': { enabled: true }, 'b.com': { enabled: true } };
+await ask({ type: 'importSettings', payload: { domain_configs: { 'b.com': { enabled: false }, 'c.com': { enabled: true } } } });
+const merged = chrome.storage.local._data.domain_configs;
+assert(merged['a.com']?.enabled === true && merged['b.com']?.enabled === false && merged['c.com'],
+  'import merges sites (imported win, others kept)');
 sandbox.__capture.activeCaptures.set(1, { streamId: 'stream-1' });
 const viewFrom2 = await ask({ type: 'getConfig', tabId: 2 });
 assert(viewFrom2.hqTabId === 1 && viewFrom2.captureActive === false, 'getConfig reports the real HQ owner tab');

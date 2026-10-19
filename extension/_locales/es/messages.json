@@ -23,22 +23,6 @@
     "message": "Se cortan los picos; también se igualan partes bajas y altas",
     "description": "Hint del techo con igualar volumen activo"
   },
-  "limitQuieter": {
-    "message": "Más bajo",
-    "description": "Extremo izquierdo del techo"
-  },
-  "limitLouder": {
-    "message": "Más alto",
-    "description": "Extremo derecho del techo"
-  },
-  "enable": {
-    "message": "Activar",
-    "description": "Texto del botón de activación"
-  },
-  "disable": {
-    "message": "Desactivar",
-    "description": "Texto del botón de desactivación"
-  },
   "powerOffLabel": {
     "message": "Protección apagada",
     "description": "Etiqueta del switch apagado"
@@ -52,7 +36,7 @@
     "description": "Título para el botón principal"
   },
   "pathToggleTitle": {
-    "message": "Mejor calidad (captura de pestaña)",
+    "message": "Cambiar entre Mejor calidad y Compatible con pantalla completa",
     "description": "Título del toggle de mejor calidad"
   },
   "pathHelpTitle": {
@@ -64,7 +48,7 @@
     "description": "Título del popover"
   },
   "pathBestDesc": {
-    "message": "Captura toda la pestaña para cortar los picos antes de que los oigas. Solo una pestaña tiene Mejor calidad a la vez; las demás siguen protegidas en modo Compatible con fullscreen. El fullscreen del reproductor puede requerir F11.",
+    "message": "Captura toda la pestaña para cortar los picos antes de que los oigas. Solo una pestaña tiene Mejor calidad a la vez; las demás siguen protegidas en modo Compatible con pantalla completa. La pantalla completa del reproductor puede requerir F11.",
     "description": "Cuerpo del popover"
   },
   "closeLabel": {
@@ -76,29 +60,16 @@
     "description": "Título del panel de ajustes"
   },
   "presetSelect": {
-    "message": "Carácter del limiter",
+    "message": "Recuperación tras un pico",
     "description": "Etiqueta de presets de fuerza"
   },
-  "releaseLabel": {
-    "message": "Velocidad de release",
-    "description": "Etiqueta de release"
-  },
   "releaseTooltip": {
-    "message": "Qué tan rápido recupera el volumen tras un pico. Más bajo = más lento.",
+    "message": "Qué tan rápido vuelve el volumen tras cortar un pico. Lenta = más suave, Rápida = menos bombeo en música.",
     "description": "Tooltip release"
   },
-  "strengthCustom": { "message": "Personalizado", "description": "Fuerza personalizada" },
-  "strengthSoft": { "message": "Suave", "description": "Fuerza suave" },
+  "strengthSoft": { "message": "Rápida", "description": "Fuerza suave" },
   "strengthNormal": { "message": "Normal", "description": "Fuerza normal" },
-  "strengthStrong": { "message": "Fuerte", "description": "Fuerza fuerte" },
-  "footer": {
-    "message": "Nunca oigas el pico",
-    "description": "Pie de página"
-  },
-  "gainLabel": {
-    "message": "Ganancia",
-    "description": "Etiqueta de ganancia aplicada"
-  },
+  "strengthStrong": { "message": "Lenta", "description": "Fuerza fuerte" },
   "applyAllSitesLabel": {
     "message": "Aplicar a todos los sitios",
     "description": "Toggle global"
@@ -117,11 +88,10 @@
   "scenarioMetaPeaks": { "message": "Solo picos", "description": "Meta escenario solo limiter" },
   "audioPathLabel": { "message": "Ruta de audio", "description": "Etiqueta de ruta" },
   "pathCapture": { "message": "Mejor calidad", "description": "Ruta captura" },
-  "pathElement": { "message": "Compatible con fullscreen", "description": "Ruta elemento" },
-  "pathAuto": { "message": "Auto", "description": "Ruta auto" },
+  "pathElement": { "message": "Compatible con pantalla completa", "description": "Ruta elemento" },
   "levelingLabel": { "message": "Igualar volumen", "description": "Toggle igualar volumen" },
   "levelingTooltip": {
-    "message": "Iguala partes bajas y altas antes del limiter de picos. Apágalo para dinámicas tipo Música.",
+    "message": "Iguala partes bajas y altas antes del limitador de picos. Apágalo para dinámicas tipo Música.",
     "description": "Tooltip igualar volumen"
   },
   "domainSaved": { "message": "Guardado", "description": "Badge dominio" },
@@ -134,6 +104,14 @@
     "message": "Solo picos",
     "description": "Modo de estado sin leveling"
   },
+  "statusPathPaused": {
+    "message": "Mejor calidad en pausa",
+    "description": "Fragmento de estado cuando HQ no pudo arrancar aquí"
+  },
+  "reductionLabel": {
+    "message": "Reducción",
+    "description": "Cuánto está bajando el limitador el sonido ahora mismo"
+  },
   "statusPathStandby": {
     "message": "Mejor calidad en otra pestaña",
     "description": "Fragmento de ruta cuando HQ está en otra pestaña"
@@ -142,20 +120,7 @@
     "message": "Mejor calidad en pausa — pulsa para reanudar",
     "description": "Fragmento de ruta cuando HQ no pudo arrancar en esta pestaña"
   },
-  "statusBestQuality": {
-    "message": "Protegiendo · Mejor calidad",
-    "description": "Estado legacy con captura"
-  },
-  "statusHqStandby": {
-    "message": "Protegiendo · Compatible con fullscreen (Mejor calidad en otra pestaña)",
-    "description": "Estado legacy HQ en otra pestaña"
-  },
-  "statusElementPath": {
-    "message": "Protegiendo · Compatible con fullscreen",
-    "description": "Estado legacy ruta elemento"
-  },
   "backupLabel": { "message": "Copia de seguridad", "description": "Sección export/import" },
-  "fineTuneLabel": { "message": "Ajuste fino", "description": "Release section" },
   "behaviorLabel": { "message": "Comportamiento", "description": "Sección nivelación/global" },
   "themeLabel": { "message": "Tema", "description": "Sección de tema" },
   "themeAuto": { "message": "Auto", "description": "Seguir el sistema" },
@@ -173,7 +138,7 @@
     "message": "Activa la protección, fija el techo y elige un modo. Eso es todo.",
     "description": "Intro what's-new"
   },
-  "coachmarkStart": { "message": "Ver novedades", "description": "Empezar tour" },
+  "coachmarkStart": { "message": "Empezar", "description": "Empezar tour" },
   "coachmarkPower": {
     "message": "Activa la protección aquí. El número es el nivel actual en dBFS.",
     "description": "Tour botón de potencia"
@@ -187,7 +152,7 @@
     "description": "Tour igualar volumen"
   },
   "coachmarkBestQuality": {
-    "message": "Mejor calidad corta los picos antes de oírlos. Usa Compatible con fullscreen si necesitas el fullscreen del reproductor.",
+    "message": "Mejor calidad corta los picos antes de oírlos. Usa Compatible con pantalla completa si necesitas la pantalla completa del reproductor.",
     "description": "Tour HQ"
   },
   "coachmarkGlobalToggle": {
@@ -197,7 +162,7 @@
   "coachmarkNext": { "message": "Siguiente", "description": "Siguiente paso" },
   "coachmarkDone": { "message": "Entendido", "description": "Fin del tour" },
   "fullscreenHint": {
-    "message": "Mejor calidad activo — el fullscreen del reproductor queda limitado. Pulsa F11 o cambia a Compatible con fullscreen en Ajustes.",
+    "message": "Mejor calidad activo — la pantalla completa del reproductor queda limitada. Pulsa F11 o cambia a Compatible con pantalla completa en Ajustes.",
     "description": "Aviso fullscreen"
   },
   "commandToggleEnabled": {

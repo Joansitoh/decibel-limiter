@@ -5,43 +5,26 @@
  * @module presets
  */
 (function (root) {
-  /** Release speed (dB/s) per limiter character. */
+  /**
+   * Recovery speed after a peak (dB/s). Keys are stored in configs; the UI calls
+   * them Fast (soft) / Normal / Slow (strong).
+   */
   const STRENGTH_PRESETS = Object.freeze({
     soft: { release: 15 },
     normal: { release: 8 },
     strong: { release: 4 }
   });
 
-  /** Scenario presets — product-facing. Music keeps dynamics (no leveling). */
+  /**
+   * Scenario presets — sound only. Power, global scope and the audio path stay the
+   * user's choice (the path depends on their player/fullscreen needs, not the content).
+   * Music keeps dynamics (no leveling).
+   */
   const SCENARIO_PRESETS = Object.freeze({
-    night: {
-      limitDB: -26,
-      limiterStrength: 'strong',
-      levelingEnabled: true,
-      levelingProfile: 'night',
-      audioPath: 'capture'
-    },
-    balanced: {
-      limitDB: -20,
-      limiterStrength: 'normal',
-      levelingEnabled: true,
-      levelingProfile: 'balanced',
-      audioPath: 'capture'
-    },
-    social: {
-      limitDB: -30,
-      limiterStrength: 'strong',
-      levelingEnabled: true,
-      levelingProfile: 'social',
-      audioPath: 'capture'
-    },
-    music: {
-      limitDB: -12,
-      limiterStrength: 'soft',
-      levelingEnabled: false,
-      levelingProfile: null,
-      audioPath: 'element'
-    }
+    night: { limitDB: -26, limiterStrength: 'strong', levelingEnabled: true, levelingProfile: 'night' },
+    balanced: { limitDB: -20, limiterStrength: 'normal', levelingEnabled: true, levelingProfile: 'balanced' },
+    social: { limitDB: -30, limiterStrength: 'strong', levelingEnabled: true, levelingProfile: 'social' },
+    music: { limitDB: -12, limiterStrength: 'soft', levelingEnabled: false, levelingProfile: null }
   });
 
   /** DynamicsCompressor + makeup profiles for leveling (before the brickwall). */
@@ -89,52 +72,50 @@
     global: false
   });
 
-  const AUDIO_PATHS = new Set(['capture', 'element', 'auto']);
+  const AUDIO_PATHS = new Set(['capture', 'element']);
   const SCENARIOS = new Set(['night', 'balanced', 'social', 'music', 'custom']);
-  const LIMITER_STRENGTHS = new Set(['soft', 'normal', 'strong', 'custom']);
 
-  function applyStrength(cfg, strength) {
-    const p = STRENGTH_PRESETS[strength];
-    if (!p) return cfg;
-    return { ...cfg, limiterStrength: strength, limiterRelease: p.release };
+  /** Preset whose release is closest to a (legacy custom) release value. */
+  function nearestStrength(release) {
+    if (!Number.isFinite(release)) return 'normal';
+    return Object.keys(STRENGTH_PRESETS).reduce((best, k) =>
+      Math.abs(STRENGTH_PRESETS[k].release - release) < Math.abs(STRENGTH_PRESETS[best].release - release) ? k : best,
+    'normal');
   }
 
-  function applyScenario(scenario) {
+  /** Apply a scenario's sound settings over cfg; power, scope and audio path stay as they are. */
+  function applyScenario(cfg, scenario) {
     const base = SCENARIO_PRESETS[scenario];
-    if (!base) return { ...DEFAULT_CONFIG, scenario: 'custom' };
-    let cfg = {
-      ...DEFAULT_CONFIG,
-      scenario,
-      limitDB: base.limitDB,
-      audioPath: base.audioPath,
-      levelingEnabled: base.levelingEnabled,
-      levelingProfile: base.levelingProfile
-    };
-    cfg = applyStrength(cfg, base.limiterStrength);
-    return cfg;
+    return migrateConfig(base ? { ...cfg, ...base, scenario } : { ...cfg, scenario: 'custom' });
   }
 
   /** Whether this config should run tabCapture (Best quality). */
   function wantsCapture(cfg) {
     if (!cfg?.enabled) return false;
-    const path = cfg.audioPath || (cfg.captureEnabled ? 'capture' : 'element');
-    return path === 'capture' || path === 'auto';
+    return (cfg.audioPath || (cfg.captureEnabled ? 'capture' : 'element')) !== 'element';
   }
 
-  /** Migrate old captureEnabled-only configs to audioPath. */
+  /** Normalize any stored/incoming config (also migrates removed options). */
   function migrateConfig(raw) {
     if (!raw || typeof raw !== 'object') return { ...DEFAULT_CONFIG };
     const cfg = { ...DEFAULT_CONFIG, ...raw };
     delete cfg.limiterFloor; // removed setting — the brickwall ceiling always overrode it
-    if (!AUDIO_PATHS.has(cfg.audioPath)) {
-      cfg.audioPath = raw.captureEnabled ? 'capture' : (DEFAULT_CONFIG.audioPath);
-    }
+    // Unknown or removed paths ('auto' always behaved like capture) → Best quality.
+    if (!AUDIO_PATHS.has(cfg.audioPath)) cfg.audioPath = 'capture';
     if (!SCENARIOS.has(cfg.scenario)) cfg.scenario = 'custom';
-    if (!LIMITER_STRENGTHS.has(cfg.limiterStrength)) cfg.limiterStrength = 'normal';
+    // Recovery is preset-only now; legacy 'custom' maps to the closest preset.
+    if (!Object.hasOwn(STRENGTH_PRESETS, cfg.limiterStrength)) {
+      cfg.limiterStrength = nearestStrength(cfg.limiterRelease);
+    }
+    cfg.limiterRelease = STRENGTH_PRESETS[cfg.limiterStrength].release;
     if (typeof cfg.levelingEnabled !== 'boolean') {
       cfg.levelingEnabled = cfg.scenario !== 'music' && cfg.scenario !== 'custom'
         ? true
         : !!raw.levelingEnabled;
+    }
+    // Leveling on needs a real profile (Music stores null) — otherwise the switch does nothing.
+    if (cfg.levelingEnabled && !Object.hasOwn(LEVELING_PROFILES, cfg.levelingProfile)) {
+      cfg.levelingProfile = 'balanced';
     }
     cfg.captureEnabled = wantsCapture(cfg);
     return cfg;
@@ -164,8 +145,6 @@
     DEFAULT_CONFIG,
     AUDIO_PATHS,
     SCENARIOS,
-    LIMITER_STRENGTHS,
-    applyStrength,
     applyScenario,
     levelingProfileFor,
     applyLeveling,

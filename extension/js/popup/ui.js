@@ -4,7 +4,7 @@
 import { readTheme } from './theme.js';
 import { METER_MIN_DB, METER_MAX_DB, clampDB, dbToFrac, fmtDB } from './format.js';
 
-const { SCENARIO_PRESETS, STRENGTH_PRESETS } = self.DLPresets;
+const { SCENARIO_PRESETS } = self.DLPresets;
 
 export const WHATS_NEW_VERSION = 'hearing-guard-2026-10';
 export const WHATS_NEW_STORAGE_KEY = 'seenWhatsNew';
@@ -53,10 +53,7 @@ export function cacheElements() {
     presetSelector: qs('presetSelector'),
     pathSelector: qs('pathSelector'),
     themeSelector: qs('themeSelector'),
-    releaseSlider: qs('releaseSlider'),
-    releaseValue: qs('releaseValue'),
     globalToggle: qs('globalToggle'),
-    levelingToggle: qs('levelingToggle'),
     evenVolumeToggle: qs('evenVolumeToggle'),
     ceilingHint: qs('ceilingHint'),
     headerIconWrap: q('.header-icon-wrap') || q('.brand'),
@@ -94,6 +91,7 @@ export function localize(elements) {
     if (msg) el.setAttribute('aria-label', msg);
   });
   document.title = chrome.i18n.getMessage('extensionName');
+  document.documentElement.lang = chrome.i18n.getUILanguage();
   if (elements.reviewLink) elements.reviewLink.href = STORE_URL;
 }
 
@@ -247,7 +245,7 @@ export function paintScenarioLimits() {
       : id === 'social'
         ? 'scenarioMetaStrongEven'
         : 'scenarioMetaEven';
-    const mode = chrome.i18n.getMessage(modeKey) || (p.levelingEnabled ? 'Even' : 'Peaks');
+    const mode = chrome.i18n.getMessage(modeKey);
     el.textContent = `${mode} · ${fmtDB(p.limitDB)}`;
   });
 }
@@ -275,11 +273,9 @@ export function applyEnableUI(elements, enabled, animate = false) {
   const on = enabled;
   const btn = elements.mainToggle;
   const label = elements.toggleText;
-  const nextLabel = chrome.i18n.getMessage(on ? 'powerOnLabel' : 'powerOffLabel')
-    || chrome.i18n.getMessage(on ? 'disable' : 'enable');
+  const nextLabel = chrome.i18n.getMessage(on ? 'powerOnLabel' : 'powerOffLabel');
   btn?.classList.toggle('enabled', on);
   btn?.setAttribute('aria-checked', String(on));
-  btn?.setAttribute('aria-pressed', String(on));
   document.body.classList.toggle('is-on', on);
   elements.headerIconWrap?.classList.toggle('active', on);
 
@@ -317,8 +313,10 @@ const HQ_LABEL_KEYS = {
   off: 'pathElement',
   active: 'pathCapture',
   elsewhere: 'statusPathStandby',
-  unavailable: 'statusPathUnavailable'
+  unavailable: 'statusPathPaused'
 };
+/** The chip is clickable, so its paused label also says how to resume. */
+const HQ_CHIP_KEYS = { ...HQ_LABEL_KEYS, unavailable: 'statusPathUnavailable' };
 
 export function applyPathUI(elements, config, hq = 'off') {
   // Icon/label show the preference (also while off); the highlight shows HQ actually requested.
@@ -330,7 +328,7 @@ export function applyPathUI(elements, config, hq = 'off') {
   if (hqIcon) hqIcon.hidden = !prefersHq;
   if (fsIcon) fsIcon.hidden = prefersHq;
   if (elements.pathChipLabel) {
-    const key = !prefersHq ? 'pathElement' : hq === 'off' ? 'pathCapture' : HQ_LABEL_KEYS[hq];
+    const key = !prefersHq ? 'pathElement' : hq === 'off' ? 'pathCapture' : HQ_CHIP_KEYS[hq];
     elements.pathChipLabel.textContent = chrome.i18n.getMessage(key);
   }
 }
@@ -354,8 +352,7 @@ export function applyStatusLine(elements, { enabled, levelingEnabled, hq }, anim
   if (!enabled) {
     next = chrome.i18n.getMessage('extensionDescription');
   } else {
-    const mode = chrome.i18n.getMessage(levelingEnabled ? 'statusModeEven' : 'statusModePeaks')
-      || (levelingEnabled ? 'Evening volume' : 'Peaks only');
+    const mode = chrome.i18n.getMessage(levelingEnabled ? 'statusModeEven' : 'statusModePeaks');
     next = `${mode} · ${chrome.i18n.getMessage(HQ_LABEL_KEYS[hq] ?? 'pathElement')}`;
   }
   if (next === el.textContent) return;
@@ -384,11 +381,9 @@ export function applyGlobalToggleUI(elements, global) {
 }
 
 export function applyLevelingUI(elements, levelingEnabled) {
-  const on = !!levelingEnabled;
-  [elements.evenVolumeToggle, elements.levelingToggle].filter(Boolean).forEach(btn => {
-    btn.classList.toggle('active', on);
-    btn.setAttribute('aria-checked', String(on));
-  });
+  const btn = elements.evenVolumeToggle;
+  btn?.classList.toggle('active', !!levelingEnabled);
+  btn?.setAttribute('aria-checked', String(!!levelingEnabled));
 }
 
 export function updateThemeButtons(elements) {
@@ -419,19 +414,6 @@ export function updatePathSelector(elements, audioPath) {
   });
 }
 
-function paintRelease(elements, release) {
-  if (!elements.releaseSlider) return;
-  elements.releaseSlider.value = release;
-  if (elements.releaseValue) elements.releaseValue.textContent = `${release} dB/s`;
-}
-
-export function syncSlidersFromPreset(elements, config, preset) {
-  const p = STRENGTH_PRESETS[preset];
-  if (!p) return;
-  config.limiterRelease = p.release;
-  paintRelease(elements, p.release);
-}
-
 export function syncAllUI(ctx) {
   const { elements, config, host, domainSaved, hq } = ctx;
   paintCeiling(elements, config.limitDB);
@@ -439,10 +421,7 @@ export function syncAllUI(ctx) {
   applyPathUI(elements, config, hq);
   updatePathSelector(elements, config.audioPath);
   updateScenarioButtons(elements, config.scenario);
-  const isKnown = config.limiterStrength in STRENGTH_PRESETS;
-  if (isKnown) syncSlidersFromPreset(elements, config, config.limiterStrength);
-  else paintRelease(elements, config.limiterRelease);
-  updatePresetButtons(elements, isKnown ? config.limiterStrength : 'custom');
+  updatePresetButtons(elements, config.limiterStrength);
   applyGlobalToggleUI(elements, config.global);
   applyLevelingUI(elements, config.levelingEnabled);
   applyDomainChip(elements, { host, domainSaved, global: config.global });
@@ -689,19 +668,17 @@ export function positionCoachmark(elements, coachmarkStepIndex) {
   tooltip.style.left = `${left}px`;
 }
 
-export function renderMeter(elements, { displayDB, isActive, limitDB, currentGainDB, gainVisible, setGainVisible }) {
+export function renderMeter(elements, { displayDB, isActive, currentGainDB, setGainVisible }) {
   const valid = typeof displayDB === 'number' && isFinite(displayDB);
   const { averageDB, gainReadout, meterTube } = elements;
 
-  if (averageDB) {
-    averageDB.textContent = fmtDB(displayDB);
-    averageDB.classList.toggle('over', valid && displayDB > limitDB);
-  }
+  // Post-limiter level: it can't exceed the ceiling, so what was cut shows as "Reduction".
+  if (averageDB) averageDB.textContent = fmtDB(displayDB);
   if (gainReadout) {
     const show = isActive && typeof currentGainDB === 'number' && isFinite(currentGainDB);
     if (show) {
-      const sign = currentGainDB >= 0 ? '+' : '';
-      gainReadout.textContent = `${chrome.i18n.getMessage('gainLabel')} ${sign}${currentGainDB.toFixed(1)} dB`;
+      const reduction = Math.max(0, -currentGainDB);
+      gainReadout.textContent = `${chrome.i18n.getMessage('reductionLabel')} ${reduction.toFixed(1)} dB`;
     }
     setGainVisible(show);
   }

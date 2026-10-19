@@ -23,22 +23,6 @@
     "message": "Peaks are stopped; quiet and loud parts are also evened out",
     "description": "Ceiling hint when even-volume leveling is on"
   },
-  "limitQuieter": {
-    "message": "Quieter",
-    "description": "Left end of ceiling slider"
-  },
-  "limitLouder": {
-    "message": "Louder",
-    "description": "Right end of ceiling slider"
-  },
-  "enable": {
-    "message": "Enable",
-    "description": "Enable button text"
-  },
-  "disable": {
-    "message": "Disable",
-    "description": "Disable button text"
-  },
   "powerOffLabel": {
     "message": "Protection off",
     "description": "Power switch label when disabled"
@@ -52,7 +36,7 @@
     "description": "Title for the main toggle button"
   },
   "pathToggleTitle": {
-    "message": "Best quality (tab capture)",
+    "message": "Switch between Best quality and Fullscreen-friendly",
     "description": "Title for best-quality path toggle"
   },
   "pathHelpTitle": {
@@ -76,29 +60,16 @@
     "description": "Title for settings panel"
   },
   "presetSelect": {
-    "message": "Limiter character",
+    "message": "Recovery after a peak",
     "description": "Label for strength presets"
   },
-  "releaseLabel": {
-    "message": "Release speed",
-    "description": "Label for release speed slider"
-  },
   "releaseTooltip": {
-    "message": "How fast volume recovers after a peak. Lower = slower recovery.",
+    "message": "How fast volume comes back after a peak is cut. Slow = smoothest, Fast = least pumping on music.",
     "description": "Tooltip explaining release speed"
   },
-  "strengthCustom": { "message": "Custom", "description": "Custom limiter strength" },
-  "strengthSoft": { "message": "Soft", "description": "Soft limiter strength" },
+  "strengthSoft": { "message": "Fast", "description": "Soft limiter strength" },
   "strengthNormal": { "message": "Normal", "description": "Normal limiter strength" },
-  "strengthStrong": { "message": "Strong", "description": "Strong limiter strength" },
-  "footer": {
-    "message": "Never hear the spike",
-    "description": "Footer text"
-  },
-  "gainLabel": {
-    "message": "Gain",
-    "description": "Label for the live applied-gain readout"
-  },
+  "strengthStrong": { "message": "Slow", "description": "Strong limiter strength" },
   "applyAllSitesLabel": {
     "message": "Apply to all sites",
     "description": "Global persistence toggle"
@@ -118,7 +89,6 @@
   "audioPathLabel": { "message": "Audio path", "description": "Path selector label" },
   "pathCapture": { "message": "Best quality", "description": "Capture path" },
   "pathElement": { "message": "Fullscreen-friendly", "description": "Element path" },
-  "pathAuto": { "message": "Auto", "description": "Auto path" },
   "levelingLabel": { "message": "Even volume", "description": "Even-volume / leveling toggle" },
   "levelingTooltip": {
     "message": "Evens quiet and loud parts before the peak limiter. Turn off for Music-style dynamics.",
@@ -134,6 +104,14 @@
     "message": "Peaks only",
     "description": "Status mode when leveling is off"
   },
+  "statusPathPaused": {
+    "message": "Best quality paused",
+    "description": "Status-line path fragment when HQ could not start here"
+  },
+  "reductionLabel": {
+    "message": "Reduction",
+    "description": "How much the limiter is turning the sound down right now"
+  },
   "statusPathStandby": {
     "message": "Best quality on another tab",
     "description": "Path fragment when HQ is on another tab"
@@ -142,20 +120,7 @@
     "message": "Best quality paused — tap to resume",
     "description": "Path fragment when HQ wants to run here but could not start"
   },
-  "statusBestQuality": {
-    "message": "Protecting · Best quality",
-    "description": "Legacy status when capture is on"
-  },
-  "statusHqStandby": {
-    "message": "Protecting · Fullscreen-friendly (Best quality on another tab)",
-    "description": "Legacy status when HQ preferred but another tab owns capture"
-  },
-  "statusElementPath": {
-    "message": "Protecting · Fullscreen-friendly",
-    "description": "Legacy status when element path is on"
-  },
   "backupLabel": { "message": "Backup", "description": "Export/import section" },
-  "fineTuneLabel": { "message": "Fine tune", "description": "Release section" },
   "behaviorLabel": { "message": "Behavior", "description": "Leveling/global section" },
   "themeLabel": { "message": "Theme", "description": "Theme section" },
   "themeAuto": { "message": "Auto", "description": "Follow system theme" },
@@ -173,7 +138,7 @@
     "message": "Enable protection, set a ceiling, pick a mode. That’s the whole loop.",
     "description": "What's-new intro"
   },
-  "coachmarkStart": { "message": "See what's new", "description": "Start tour" },
+  "coachmarkStart": { "message": "Start", "description": "Start tour" },
   "coachmarkPower": {
     "message": "Turn protection on here. The number shows your current level in dBFS.",
     "description": "Tour step power"

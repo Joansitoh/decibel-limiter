@@ -6,19 +6,19 @@
 const activeCaptures = new Map();
 const captureStarting = new Set();
 
+/** Same path wording as the popup: active / on another tab (really) / paused / Fullscreen-friendly. */
 function badgeFor(cfg, captureActive) {
-  if (!cfg.enabled) return { text: '', title: 'Decibel Limiter' };
-  if (captureActive) {
-    return { text: 'HQ', title: 'Decibel Limiter — Best quality', color: '#2ecc71' };
-  }
-  if (self.DLPresets.wantsCapture(cfg)) {
-    return {
-      text: 'ON',
-      title: 'Decibel Limiter — Enabled (Best quality on another tab)',
-      color: '#2ecc71'
-    };
-  }
-  return { text: 'ON', title: 'Decibel Limiter — Enabled', color: '#2ecc71' };
+  const t = key => chrome.i18n.getMessage(key);
+  const name = t('extensionName');
+  if (!cfg.enabled) return { text: '', title: name };
+  let pathKey = 'pathElement';
+  if (captureActive) pathKey = 'pathCapture';
+  else if (self.DLPresets.wantsCapture(cfg)) pathKey = activeCaptures.size ? 'statusPathStandby' : 'statusPathPaused';
+  return {
+    text: captureActive ? 'HQ' : 'ON',
+    title: `${name} — ${t('powerOnLabel')} · ${t(pathKey)}`,
+    color: '#2ecc71'
+  };
 }
 
 function applyBadge(tabId, cfg, captureActive = activeCaptures.has(tabId)) {
@@ -94,16 +94,21 @@ async function rebalanceCaptures(preferTabId = null, { force = false } = {}) {
     }
   }
 
+  if (owner != null) await claimHq(owner);
+
+  // After the owner settled, so badges can tell "on another tab" from "paused".
+  // Every tab gets its config: one that just turned off must bypass its element graphs too.
   const tabs = await chrome.tabs.query({});
   await Promise.all(tabs.map(async tab => {
     if (tab.id == null || tab.id === owner) return;
     const cfg = await getTabConfig(tab.id);
     applyBadge(tab.id, cfg, false);
-    if (cfg.enabled) await pushConfigToTab(tab.id, cfg);
+    await pushConfigToTab(tab.id, cfg);
   }));
+}
 
-  if (owner == null) return;
-
+/** Start (or refresh) Best quality on the chosen owner; soft-handoff to element on failure. */
+async function claimHq(owner) {
   const cfg = await getTabConfig(owner);
   // Ensure domain-derived config is pinned to this tab so the next activate sees it.
   try { await setTabConfig(owner, cfg); } catch (_) { /* ignore */ }

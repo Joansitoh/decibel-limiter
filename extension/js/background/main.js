@@ -6,9 +6,8 @@ importScripts('../presets.js', 'storage.js', 'capture.js');
 
 const {
   DEFAULT_CONFIG,
-  STRENGTH_PRESETS,
   SCENARIO_PRESETS,
-  LIMITER_STRENGTHS,
+  LEVELING_PROFILES,
   SCENARIOS,
   AUDIO_PATHS,
   wantsCapture,
@@ -41,22 +40,19 @@ async function hydrateActiveTab() {
 
 hydrateActiveTab();
 
+/** Whitelist + clamp a config arriving by message; migrateConfig fills the rest. */
 function sanitizeIncoming(msg) {
-  const cfg = migrateConfig({
+  return migrateConfig({
     enabled: !!msg.enabled,
-    limitDB: Number.isFinite(msg.limitDB) ? msg.limitDB : DEFAULT_CONFIG.limitDB,
+    limitDB: Number.isFinite(msg.limitDB) ? Math.max(-60, Math.min(0, msg.limitDB)) : DEFAULT_CONFIG.limitDB,
     audioPath: AUDIO_PATHS.has(msg.audioPath) ? msg.audioPath : undefined,
     scenario: SCENARIOS.has(msg.scenario) ? msg.scenario : 'custom',
-    limiterStrength: LIMITER_STRENGTHS.has(msg.limiterStrength) ? msg.limiterStrength : 'normal',
-    limiterRelease: Number.isFinite(msg.limiterRelease) ? msg.limiterRelease : undefined,
+    limiterStrength: msg.limiterStrength,
+    limiterRelease: msg.limiterRelease,
     levelingEnabled: typeof msg.levelingEnabled === 'boolean' ? msg.levelingEnabled : undefined,
-    levelingProfile: msg.levelingProfile ?? undefined,
+    levelingProfile: Object.hasOwn(LEVELING_PROFILES, msg.levelingProfile ?? '') ? msg.levelingProfile : null,
     global: !!msg.global
   });
-  if (!Number.isFinite(cfg.limiterRelease)) {
-    cfg.limiterRelease = STRENGTH_PRESETS[cfg.limiterStrength]?.release ?? DEFAULT_CONFIG.limiterRelease;
-  }
-  return cfg;
 }
 
 /** Popup/content view of a tab: effective config + host + runtime capture state. */
@@ -105,7 +101,7 @@ async function cycleScenario(tabId) {
   const order = Object.keys(SCENARIO_PRESETS);
   const cfg = await getTabConfig(tabId);
   const next = order[(order.indexOf(cfg.scenario) + 1) % order.length];
-  await saveAndApply(tabId, migrateConfig({ ...cfg, ...applyScenario(next), enabled: cfg.enabled, global: cfg.global }));
+  await saveAndApply(tabId, applyScenario(cfg, next));
 }
 
 /** Message handlers: each returns the response (undefined = plain ack). */
@@ -141,14 +137,8 @@ const handlers = {
       if (nextConfig.global) {
         const { captureEnabled: _c, ...globalCfg } = nextConfig;
         await setGlobalConfig({ ...globalCfg, global: true });
-        // Rebalance refreshes badges, enabled tabs and the HQ owner; a global
-        // switch-off must also reach the now-disabled tabs' content scripts.
+        // Rebalance refreshes every tab (badge + content) and the HQ owner.
         await rebalanceCaptures(tabId, { force: true });
-        const tabs = await chrome.tabs.query({});
-        await Promise.all(tabs.map(async t => {
-          const cfg = await getTabConfig(t.id);
-          if (!cfg.enabled) await pushConfigToTab(t.id, cfg);
-        }));
       } else {
         await clearGlobalConfig();
         const host = resolveHost(msg.host, null) || (await tabHost(tabId));
@@ -177,7 +167,8 @@ const handlers = {
       await clearGlobalConfig();
     }
     if (p.domain_configs && typeof p.domain_configs === 'object') {
-      await setDomainConfigs(p.domain_configs);
+      // Merge: imported sites win, sites not in the file are kept.
+      await setDomainConfigs({ ...(await getDomainConfigs()), ...p.domain_configs });
     }
     const tabs = await chrome.tabs.query({});
     await Promise.all(tabs.map(t => applyConfigToTab(t.id).catch(() => { })));

@@ -87,7 +87,7 @@
               <span id="evenVolumeLabel" data-i18n="levelingLabel">Even volume</span>
               <span class="tip"><svg width="12" height="12" aria-hidden="true"><use href="#i-info"/></svg><span class="tooltip" data-i18n="levelingTooltip">Evens quiet and loud parts before the peak limiter. Off for Music.</span></span>
             </span>
-            <button type="button" id="evenVolumeToggle" class="switch js-leveling-toggle" role="switch" aria-checked="false" data-i18n-aria="levelingLabel">
+            <button type="button" id="evenVolumeToggle" class="switch" role="switch" aria-checked="false" data-i18n-aria="levelingLabel">
               <span class="switch-knob"></span>
             </button>
           </div>
@@ -160,7 +160,7 @@
 
     <div class="sheet-scroll">
       <p class="group-label" data-i18n="themeLabel">Theme</p>
-      <div class="group compact three" id="themeSelector">
+      <div class="group compact" id="themeSelector">
         <button type="button" data-theme-choice="auto" data-i18n="themeAuto">Auto</button>
         <button type="button" data-theme-choice="light" data-i18n="themeLight">Light</button>
         <button type="button" data-theme-choice="dark" data-i18n="themeDark">Dark</button>
@@ -170,38 +170,20 @@
       <div class="group" id="pathSelector">
         <button type="button" data-path="capture" class="row"><span data-i18n="pathCapture">Best quality</span></button>
         <button type="button" data-path="element" class="row"><span data-i18n="pathElement">Fullscreen-friendly</span></button>
-        <button type="button" data-path="auto" class="row"><span data-i18n="pathAuto">Auto</span></button>
       </div>
 
-      <p class="group-label" data-i18n="presetSelect">Limiter character</p>
+      <p class="group-label label-group">
+        <span data-i18n="presetSelect">Recovery after a peak</span>
+        <span class="tip"><svg width="12" height="12" aria-hidden="true"><use href="#i-info"/></svg><span class="tooltip" data-i18n="releaseTooltip">How fast volume recovers after a peak.</span></span>
+      </p>
       <div class="group compact" id="presetSelector">
-        <button type="button" data-preset="soft" data-i18n="strengthSoft">Soft</button>
+        <button type="button" data-preset="soft" data-i18n="strengthSoft">Fast</button>
         <button type="button" data-preset="normal" data-i18n="strengthNormal">Normal</button>
-        <button type="button" data-preset="strong" data-i18n="strengthStrong">Strong</button>
-        <button type="button" data-preset="custom" data-i18n="strengthCustom">Custom</button>
-      </div>
-
-      <p class="group-label" data-i18n="fineTuneLabel">Fine tune</p>
-      <div class="group stack">
-        <div class="row-static">
-          <span class="label-group">
-            <span data-i18n="releaseLabel">Release speed</span>
-            <span class="tip"><svg width="12" height="12" aria-hidden="true"><use href="#i-info"/></svg><span class="tooltip" data-i18n="releaseTooltip">How fast volume recovers after a peak.</span></span>
-          </span>
-          <span id="releaseValue" class="mono">8 dB/s</span>
-        </div>
-        <input type="range" id="releaseSlider" class="slider" min="1" max="30" step="1" value="8" />
+        <button type="button" data-preset="strong" data-i18n="strengthStrong">Slow</button>
       </div>
 
       <p class="group-label" data-i18n="behaviorLabel">Behavior</p>
       <div class="group">
-        <div class="row-static">
-          <span class="label-group">
-            <span data-i18n="levelingLabel">Even volume</span>
-            <span class="tip"><svg width="12" height="12" aria-hidden="true"><use href="#i-info"/></svg><span class="tooltip" data-i18n="levelingTooltip">Evens quiet and loud parts before the peak limiter. Off for Music.</span></span>
-          </span>
-          <button type="button" id="levelingToggle" class="switch js-leveling-toggle" role="switch" aria-checked="false" data-i18n-aria="levelingLabel"><span class="switch-knob"></span></button>
-        </div>
         <div class="row-static">
           <span class="label-group">
             <span data-i18n="applyAllSitesLabel">Apply to all sites</span>
