@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800" role="img" aria-labelledby="t d">
+  <title id="t">Best quality, or fullscreen. Your call.</title>
+  <desc id="d">Best quality (tab capture, HQ) and Fullscreen-friendly path cards, next to a list of sites with remembered scenarios and an Apply to all sites switch.</desc>
+  <style>
+    @font-face { font-family: "Outfit"; font-weight: 100 900; src: url("../../extension/fonts/outfit-latin-wght-normal.woff2") format("woff2"); }
+    @font-face { font-family: "JetBrains Mono"; font-weight: 100 800; src: url("../../extension/fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); }
+  </style>
+  <defs>
+    <radialGradient id="halo" cx="0.2" cy="0.3" r="0.55">
+      <stop stop-color="#ff780a" stop-opacity="0.22"/><stop offset="0.55" stop-color="#ff780a" stop-opacity="0.05"/><stop offset="1" stop-color="#ff780a" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.2" fill="#ccccdc" opacity="0.07"/></pattern>
+    <filter id="shadow" x="-30%" y="-20%" width="160%" height="150%"><feDropShadow dx="0" dy="24" stdDeviation="26" flood-color="#000" flood-opacity="0.55"/></filter>
+    <filter id="glow" x="-50%" y="-80%" width="200%" height="260%"><feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#ff780a" flood-opacity="0.45"/></filter>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#ff6a00"/><stop offset="1" stop-color="#ffa040"/></linearGradient>
+    <linearGradient id="fadeGrad" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fff" stop-opacity="0"/><stop offset="0.3" stop-color="#fff"/></linearGradient>
+    <mask id="fadeIn" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="url(#fadeGrad)"/></mask>
+  </defs>
+  <rect width="1280" height="800" fill="#0c0d11"/>
+  <rect width="1280" height="800" fill="url(#dots)"/>
+  <rect width="1280" height="800" fill="url(#halo)"/>
+  
+    <text x="96" y="112" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="14" font-weight="650" fill="#ff780a" letter-spacing="3">YOUR SETUP, EVERY SITE</text>
+    <text x="92" y="178" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="54" font-weight="700" fill="#f3f4f8">Best quality, or fullscreen. Your call.</text>
+    <text x="96" y="224" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="21" font-weight="400" fill="rgba(204,204,220,0.75)">Pick how audio is protected, and Decibel Limiter remembers it per site.</text>
+
+    
+    <rect x="96" y="286" width="540" height="168" rx="22" fill="#1d1712" stroke="#ff780a" stroke-width="2"/>
+    <circle cx="146" cy="338" r="26" fill="rgba(255,120,10,0.2)"/>
+    <g transform="translate(131 323) scale(1.25)" color="#ffb375"><rect x="3.5" y="6" width="17" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M8 10v4M8 12h2a1 1 0 0 0 0-2H8m6 4V10h1.2a1.2 1.2 0 1 1 0 2.4H14"/></g>
+    <text x="190" y="347" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="26" font-weight="700" fill="#f3f4f8">Best quality</text>
+    <rect x="350" y="324" width="50" height="28" rx="8" fill="#ff780a"/><text x="375" y="344" font-family="'JetBrains Mono', Consolas, monospace" font-size="14" font-weight="700" fill="#111217" text-anchor="middle">HQ</text>
+    <text x="124" y="396" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="17" font-weight="400" fill="rgba(204,204,220,0.75)">Captures the whole tab: every sound is protected,</text><text x="124" y="420" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="17" font-weight="400" fill="rgba(204,204,220,0.75)">even players that hide their audio.</text>
+    
+    <rect x="96" y="476" width="540" height="168" rx="22" fill="#181b1f" stroke="rgba(204,204,220,0.12)" stroke-width="1"/>
+    <circle cx="146" cy="528" r="26" fill="#22252b"/>
+    <g transform="translate(131 513) scale(1.25)" color="#ccccdc"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></g>
+    <text x="190" y="537" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="26" font-weight="700" fill="#f3f4f8">Fullscreen-friendly</text>
+    
+    <text x="124" y="586" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="17" font-weight="400" fill="rgba(204,204,220,0.75)">Works inside the page, so the player’s own</text><text x="124" y="610" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="17" font-weight="400" fill="rgba(204,204,220,0.75)">fullscreen button keeps working.</text>
+    <text x="96" y="712" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="17" font-weight="400" fill="rgba(204,204,220,0.55)">Switch any time from the chip at the bottom of the popup.</text>
+
+    <text x="712" y="306" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="20" font-weight="650" fill="#f3f4f8">Remembered per site</text>
+    
+    <rect x="712" y="326" width="472" height="62" rx="14" fill="#181b1f" stroke="rgba(204,204,220,0.12)"/>
+    <g transform="translate(734 345) scale(1)" color="#ffb375"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M12 4v16M5 9h14M7 9l-2 7h6L9 9m6 0-2 7h6l-2-7"/></g>
+    <text x="772" y="364" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="18" font-weight="600" fill="#f3f4f8">youtube.com</text>
+    <text x="1000" y="364" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="15" font-weight="400" fill="rgba(204,204,220,0.75)" text-anchor="end">Balanced</text>
+    <text x="1100" y="364" font-family="'JetBrains Mono', Consolas, monospace" font-size="15" font-weight="600" fill="#ffb375" text-anchor="end">−20 dB</text>
+    <rect x="1112" y="344" width="56" height="26" rx="13" fill="rgba(255,120,10,0.16)"/><text x="1140" y="362" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="12" font-weight="650" fill="#ffb375" text-anchor="middle">Saved</text>
+    
+    <rect x="712" y="400" width="472" height="62" rx="14" fill="#181b1f" stroke="rgba(204,204,220,0.12)"/>
+    <g transform="translate(734 419) scale(1)" color="#ffb375"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M19 14.5A7.5 7.5 0 1 1 9.5 5 6 6 0 0 0 19 14.5z"/></g>
+    <text x="772" y="438" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="18" font-weight="600" fill="#f3f4f8">twitch.tv</text>
+    <text x="1000" y="438" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="15" font-weight="400" fill="rgba(204,204,220,0.75)" text-anchor="end">Night</text>
+    <text x="1100" y="438" font-family="'JetBrains Mono', Consolas, monospace" font-size="15" font-weight="600" fill="#ffb375" text-anchor="end">−26 dB</text>
+    <rect x="1112" y="418" width="56" height="26" rx="13" fill="rgba(255,120,10,0.16)"/><text x="1140" y="436" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="12" font-weight="650" fill="#ffb375" text-anchor="middle">Saved</text>
+    
+    <rect x="712" y="474" width="472" height="62" rx="14" fill="#181b1f" stroke="rgba(204,204,220,0.12)"/>
+    <g transform="translate(734 493) scale(1)" color="#ffb375"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M8 10h.01M12 10h.01M16 10h.01M5 18v-1a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v1"/><circle cx="12" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.75"/></g>
+    <text x="772" y="512" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="18" font-weight="600" fill="#f3f4f8">tiktok.com</text>
+    <text x="1000" y="512" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="15" font-weight="400" fill="rgba(204,204,220,0.75)" text-anchor="end">Social</text>
+    <text x="1100" y="512" font-family="'JetBrains Mono', Consolas, monospace" font-size="15" font-weight="600" fill="#ffb375" text-anchor="end">−30 dB</text>
+    <rect x="1112" y="492" width="56" height="26" rx="13" fill="rgba(255,120,10,0.16)"/><text x="1140" y="510" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="12" font-weight="650" fill="#ffb375" text-anchor="middle">Saved</text>
+    
+    <rect x="712" y="548" width="472" height="62" rx="14" fill="#181b1f" stroke="rgba(204,204,220,0.12)"/>
+    <g transform="translate(734 567) scale(1)" color="#ffb375"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="17" cy="16" r="2.5" fill="none" stroke="currentColor" stroke-width="1.75"/></g>
+    <text x="772" y="586" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="18" font-weight="600" fill="#f3f4f8">open.spotify.com</text>
+    <text x="1000" y="586" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="15" font-weight="400" fill="rgba(204,204,220,0.75)" text-anchor="end">Music</text>
+    <text x="1100" y="586" font-family="'JetBrains Mono', Consolas, monospace" font-size="15" font-weight="600" fill="#ffb375" text-anchor="end">−12 dB</text>
+    <rect x="1112" y="566" width="56" height="26" rx="13" fill="rgba(255,120,10,0.16)"/><text x="1140" y="584" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="12" font-weight="650" fill="#ffb375" text-anchor="middle">Saved</text>
+    <rect x="712" y="634" width="472" height="62" rx="14" fill="#181b1f" stroke="rgba(204,204,220,0.12)"/>
+    <g transform="translate(734 653) scale(1)" color="rgba(204,204,220,0.75)"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.75"/><path fill="none" stroke="currentColor" stroke-width="1.75" d="M3.5 12h17M12 3.5c2.6 2.4 3.8 5.2 3.8 8.5s-1.2 6.1-3.8 8.5c-2.6-2.4-3.8-5.2-3.8-8.5S9.4 5.9 12 3.5z"/></g>
+    <text x="772" y="672" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="18" font-weight="600" fill="#f3f4f8">Apply to all sites</text>
+    <rect x="1110" y="652" width="52" height="28" rx="14" fill="#22252b"/><circle cx="1125" cy="666" r="10" fill="rgba(204,204,220,0.55)"/>
+  
+</svg>

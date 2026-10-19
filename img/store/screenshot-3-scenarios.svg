@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="800" viewBox="0 0 1280 800" role="img" aria-labelledby="t d">
+  <title id="t">One tap for every moment</title>
+  <desc id="d">Four scenario cards: Night −26 dBFS, Balanced −20 dBFS (default), Social −30 dBFS and Music −12 dBFS.</desc>
+  <style>
+    @font-face { font-family: "Outfit"; font-weight: 100 900; src: url("../../extension/fonts/outfit-latin-wght-normal.woff2") format("woff2"); }
+    @font-face { font-family: "JetBrains Mono"; font-weight: 100 800; src: url("../../extension/fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2"); }
+  </style>
+  <defs>
+    <radialGradient id="halo" cx="0.5" cy="0" r="0.55">
+      <stop stop-color="#ff780a" stop-opacity="0.22"/><stop offset="0.55" stop-color="#ff780a" stop-opacity="0.05"/><stop offset="1" stop-color="#ff780a" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.2" fill="#ccccdc" opacity="0.07"/></pattern>
+    <filter id="shadow" x="-30%" y="-20%" width="160%" height="150%"><feDropShadow dx="0" dy="24" stdDeviation="26" flood-color="#000" flood-opacity="0.55"/></filter>
+    <filter id="glow" x="-50%" y="-80%" width="200%" height="260%"><feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#ff780a" flood-opacity="0.45"/></filter>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#ff6a00"/><stop offset="1" stop-color="#ffa040"/></linearGradient>
+    <linearGradient id="fadeGrad" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fff" stop-opacity="0"/><stop offset="0.3" stop-color="#fff"/></linearGradient>
+    <mask id="fadeIn" maskContentUnits="objectBoundingBox"><rect width="1" height="1" fill="url(#fadeGrad)"/></mask>
+  </defs>
+  <rect width="1280" height="800" fill="#0c0d11"/>
+  <rect width="1280" height="800" fill="url(#dots)"/>
+  <rect width="1280" height="800" fill="url(#halo)"/>
+  
+    <text x="96" y="112" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="14" font-weight="650" fill="#ff780a" letter-spacing="3">SCENARIOS</text>
+    <text x="92" y="178" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="54" font-weight="700" fill="#f3f4f8">One tap for every moment.</text>
+    <text x="96" y="224" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="21" font-weight="400" fill="rgba(204,204,220,0.75)">Each scenario sets the ceiling, recovery and volume evening for you.</text>
+    <text x="96" y="254" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="21" font-weight="400" fill="rgba(204,204,220,0.75)">Drag the ceiling any time to make it your own.</text>
+    
+      <rect x="96" y="318" width="256" height="330" rx="22" fill="#181b1f" stroke="rgba(204,204,220,0.12)" stroke-width="1"/>
+      <circle cx="148" cy="378" r="28" fill="#22252b"/>
+      <g transform="translate(132 362) scale(1.3333333333333333)" color="#ccccdc"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" d="M19 14.5A7.5 7.5 0 1 1 9.5 5 6 6 0 0 0 19 14.5z"/></g>
+      
+      <text x="124" y="452" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="30" font-weight="700" fill="#f3f4f8">Night</text>
+      <text x="124" y="494" font-family="'JetBrains Mono', Consolas, monospace" font-size="22" font-weight="650" fill="#ccccdc">−26 dBFS</text>
+      <rect x="124" y="510" width="107.6" height="26" rx="13" fill="rgba(255,120,10,0.16)"/>
+      <text x="136" y="528" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffb375">Even volume</text>
+      <text x="124" y="572" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">Quiet house, late shows.</text><text x="124" y="594" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">Dialogue up, explosions</text><text x="124" y="616" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">down.</text>
+      <rect x="373" y="318" width="256" height="330" rx="22" fill="#1d1712" stroke="#ff780a" stroke-width="2"/>
+      <circle cx="425" cy="378" r="28" fill="rgba(255,120,10,0.2)"/>
+      <g transform="translate(409 362) scale(1.3333333333333333)" color="#ffb375"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M12 4v16M5 9h14M7 9l-2 7h6L9 9m6 0-2 7h6l-2-7"/></g>
+      <rect x="529" y="362" width="76" height="28" rx="14" fill="#ff780a"/><text x="567" y="381" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="13" font-weight="650" fill="#111217" text-anchor="middle">Default</text>
+      <text x="401" y="452" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="30" font-weight="700" fill="#f3f4f8">Balanced</text>
+      <text x="401" y="494" font-family="'JetBrains Mono', Consolas, monospace" font-size="22" font-weight="650" fill="#ffb375">−20 dBFS</text>
+      <rect x="401" y="510" width="107.6" height="26" rx="13" fill="rgba(255,120,10,0.16)"/>
+      <text x="413" y="528" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffb375">Even volume</text>
+      <text x="401" y="572" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">Everyday browsing,</text><text x="401" y="594" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">videos and streams.</text><text x="401" y="616" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">The default.</text>
+      <rect x="650" y="318" width="256" height="330" rx="22" fill="#181b1f" stroke="rgba(204,204,220,0.12)" stroke-width="1"/>
+      <circle cx="702" cy="378" r="28" fill="#22252b"/>
+      <g transform="translate(686 362) scale(1.3333333333333333)" color="#ccccdc"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M8 10h.01M12 10h.01M16 10h.01M5 18v-1a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v1"/><circle cx="12" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.75"/></g>
+      
+      <text x="678" y="452" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="30" font-weight="700" fill="#f3f4f8">Social</text>
+      <text x="678" y="494" font-family="'JetBrains Mono', Consolas, monospace" font-size="22" font-weight="650" fill="#ccccdc">−30 dBFS</text>
+      <rect x="678" y="510" width="107.6" height="26" rx="13" fill="rgba(255,120,10,0.16)"/>
+      <text x="690" y="528" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="13" font-weight="600" fill="#ffb375">Strong even</text>
+      <text x="678" y="572" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">Reels, shorts and feeds</text><text x="678" y="594" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">where every clip has a</text><text x="678" y="616" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">different loudness.</text>
+      <rect x="927" y="318" width="256" height="330" rx="22" fill="#181b1f" stroke="rgba(204,204,220,0.12)" stroke-width="1"/>
+      <circle cx="979" cy="378" r="28" fill="#22252b"/>
+      <g transform="translate(963 362) scale(1.3333333333333333)" color="#ccccdc"><path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="17" cy="16" r="2.5" fill="none" stroke="currentColor" stroke-width="1.75"/></g>
+      
+      <text x="955" y="452" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="30" font-weight="700" fill="#f3f4f8">Music</text>
+      <text x="955" y="494" font-family="'JetBrains Mono', Consolas, monospace" font-size="22" font-weight="650" fill="#ccccdc">−12 dBFS</text>
+      <rect x="955" y="510" width="100" height="26" rx="13" fill="#22252b"/>
+      <text x="967" y="528" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="13" font-weight="600" fill="rgba(204,204,220,0.75)">Peaks only</text>
+      <text x="955" y="572" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">Keeps the dynamics of</text><text x="955" y="594" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">music — only the real</text><text x="955" y="616" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="16" font-weight="400" fill="rgba(204,204,220,0.75)">spikes are caught.</text>
+    <text x="96" y="712" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="17" font-weight="400" fill="rgba(204,204,220,0.55)">Cycle scenarios from anywhere:</text>
+    <rect x="352" y="690" width="52" height="32" rx="7" fill="#22252b" stroke="rgba(204,204,220,0.22)"/><text x="363" y="711" font-family="'JetBrains Mono', Consolas, monospace" font-size="14" font-weight="600" fill="#ccccdc">Alt</text><text x="414" y="712" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="17" font-weight="400" fill="rgba(204,204,220,0.55)">+</text><rect x="432" y="690" width="72" height="32" rx="7" fill="#22252b" stroke="rgba(204,204,220,0.22)"/><text x="443" y="711" font-family="'JetBrains Mono', Consolas, monospace" font-size="14" font-weight="600" fill="#ccccdc">Shift</text><text x="514" y="712" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="17" font-weight="400" fill="rgba(204,204,220,0.55)">+</text><rect x="532" y="690" width="32" height="32" rx="7" fill="#22252b" stroke="rgba(204,204,220,0.22)"/><text x="543" y="711" font-family="'JetBrains Mono', Consolas, monospace" font-size="14" font-weight="600" fill="#ccccdc">S</text>
+  
+</svg>

@@ -24,12 +24,12 @@
 
 Perfect for night browsing, shared workspaces, or anyone who values their hearing health.
 
-![Decibel Limiter: audio under control](img/preview_hero.png)
+![Decibel Limiter: never hear the spike](img/store/screenshot-1-hero.png)
 
 <div align="center">
 
-![Prevent sudden volume peaks](img/preview_protection.png)
-![Fine-tune audio across every tab](img/preview_controls.png)
+![Peaks are cut before you hear them](img/store/screenshot-2-protection.png)
+![One tap for every moment](img/store/screenshot-3-scenarios.png)
 
 </div>
 
