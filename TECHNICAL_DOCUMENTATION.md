@@ -23,7 +23,7 @@ The extension follows a modular architecture with **dual-mode processing** and f
 
 - **Best quality (`audioPath: capture`, default when enabled)**: `tabCapture` → offscreen → lookahead limiter. This is the path users perceive as “real” protection (peaks never heard). Badge: `HQ`.
 - **Fullscreen-friendly (`audioPath: element`)**: Content-script `MediaElementSource` per `<audio>`/`<video>`. Keeps player fullscreen; weaker coverage on SPAs/MSE.
-- **Auto**: Try capture; on failure fall back to element.
+- The audio path is a user preference independent of scenarios; scenarios only change sound (ceiling, recovery, leveling).
 - **Leveling** (optional): `DynamicsCompressor` + makeup **before** the brickwall; Music scenario disables it.
 
 See `investigate/04-normal-vs-enhanced.md` and `extension/js/presets.js`.
@@ -125,10 +125,10 @@ See `LookaheadLimiter.process()` in `extension/js/limiter-processor.js` and its 
 ### Key Features
 
 - **Real Lookahead**: gain reduction is ramped in before a loud transient reaches the output, not after
-- **Per-strength Presets**: `release` (dB/sec recovery speed) — soft/normal/strong
+- **Recovery presets**: Fast / Normal / Slow (`soft`/`normal`/`strong` = 15 / 8 / 4 dB/sec)
 - **Safety Compressor**: Native `DynamicsCompressorNode` (threshold -3dB, ratio 20:1, ~3ms attack) after the limiter, as a last-resort net
 - **Silence Detection**: Ignores paused/inaudible content
-- **Live Gain Readout**: the worklet reports the currently applied gain back to the popup ~20 times/sec
+- **Live Reduction Readout**: the worklet reports the currently applied gain reduction back to the popup ~20 times/sec
 
 ### Gain Algorithm
 
@@ -183,7 +183,7 @@ if (requiredDB < currentDB) {
 ### Features
 
 - Real-time level meter with color coding
-- Configurable ceiling (-60 to 0 dBFS) with soft/normal/strong/custom presets
+- Configurable ceiling (-60 to 0 dBFS) with Fast/Normal/Slow recovery presets
 - Live applied-gain readout (dB reduction), shown while enabled
 - **Apply to all sites**: persists the current limiter setting in `chrome.storage.local` and pushes it to every open tab, so it stays active on any site/domain you visit — not just the current tab
 - Enable/disable toggle
@@ -360,10 +360,10 @@ Ver `LookaheadLimiter.process()` en `extension/js/limiter-processor.js` y su sel
 ### Características Clave
 
 - **Lookahead Real**: la reducción de ganancia se rampa antes de que un transitorio fuerte llegue a la salida, no después
-- **Presets por Fuerza**: `release` (velocidad de recuperación en dB/seg) — suave/normal/fuerte
+- **Presets de recuperación**: Rápida / Normal / Lenta (`soft`/`normal`/`strong` = 15 / 8 / 4 dB/seg)
 - **Compresor de Seguridad**: `DynamicsCompressorNode` nativo (umbral -3dB, ratio 20:1, ataque ~3ms) tras el limitador, como red de último recurso
 - **Detección de Silencio**: ignora contenido en pausa/inaudible
-- **Lectura de Ganancia en Vivo**: el worklet reporta la ganancia actualmente aplicada al popup ~20 veces/seg
+- **Lectura de Reducción en Vivo**: el worklet reporta la reducción de ganancia aplicada al popup ~20 veces/seg
 
 ### Algoritmo de Ganancia
 
@@ -418,7 +418,7 @@ if (requiredDB < currentDB) {
 ### Características
 
 - Medidor de nivel en tiempo real con codificación de colores
-- Techo configurable (-60 a 0 dBFS) con presets suave/normal/fuerte/personalizado
+- Techo configurable (-60 a 0 dBFS) con presets de recuperación Rápida/Normal/Lenta
 - Lectura en vivo de la ganancia aplicada (reducción en dB), visible mientras está activo
 - **Aplicar a todas las webs**: guarda el ajuste actual del limitador en `chrome.storage.local` y lo envía a todas las pestañas abiertas, así se mantiene activo en cualquier web/dominio que visites — no solo en la pestaña actual
 - Interruptor de activación/desactivación
