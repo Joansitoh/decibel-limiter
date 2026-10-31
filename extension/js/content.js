@@ -152,7 +152,12 @@ class Limiter {
   }
 
   #wireElement(el) {
-    if (this.#captureActive || !this.#config.enabled) return;
+    if (this.#captureActive || !this.#config.enabled) {
+      // State flipped while the worklet loaded: un-mark so a later enable / HQ release can still wire it.
+      this.#processed.delete(el);
+      this.#watchElement(el);
+      return;
+    }
     try {
       const source = this.#audioCtx.createMediaElementSource(el);
       const leveling = this.#audioCtx.createDynamicsCompressor();

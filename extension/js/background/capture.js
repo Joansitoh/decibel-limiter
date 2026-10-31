@@ -85,7 +85,21 @@ async function pickHqOwner(preferTabId = null, { force = false } = {}) {
  * Exclusive Best quality: at most one tabCapture.
  * Other enabled tabs that prefer HQ stay protected via element path (soft handoff).
  */
-async function rebalanceCaptures(preferTabId = null, { force = false } = {}) {
+let rebalanceChain = Promise.resolve();
+
+/**
+ * Serialized: stopping/starting a capture flips tab.audible, which fires onUpdated and
+ * another rebalance. Run concurrently, those raced (activeCaptures was empty while the new
+ * owner was still starting), so a second tab grabbed HQ and the user's click was lost.
+ */
+function rebalanceCaptures(preferTabId = null, opts = {}) {
+  const run = () => doRebalance(preferTabId, opts);
+  const next = rebalanceChain.then(run, run);
+  rebalanceChain = next.catch(() => { });
+  return next;
+}
+
+async function doRebalance(preferTabId = null, { force = false } = {}) {
   const owner = await pickHqOwner(preferTabId, { force });
 
   for (const id of [...activeCaptures.keys()]) {
