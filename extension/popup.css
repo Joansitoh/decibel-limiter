@@ -846,6 +846,7 @@
   }
   .path-sheet.open { pointer-events: auto; }
   .path-sheet[hidden] { display: none !important; }
+  .foot-block[hidden], #pathSelector[hidden], .group-label[hidden] { display: none !important; }
 
   .path-sheet-scrim {
     position: absolute;

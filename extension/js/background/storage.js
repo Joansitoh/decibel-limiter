@@ -76,7 +76,18 @@ function resolveHost(hostHint, tabUrlHost) {
  * @param {number} tabId
  * @param {{ host?: string|null }} [opts] host hint from content (required when tabs.url is opaque)
  */
+/** Best quality needs tabCapture + offscreen (Chromium only; Firefox has neither). */
+const HQ_SUPPORTED = !!(chrome.tabCapture && chrome.offscreen);
+
 async function getTabConfig(tabId, opts = {}) {
+  const cfg = await resolveTabConfig(tabId, opts);
+  if (!HQ_SUPPORTED && cfg.audioPath !== 'element') {
+    return { ...cfg, audioPath: 'element', captureEnabled: false };
+  }
+  return cfg;
+}
+
+async function resolveTabConfig(tabId, opts = {}) {
   const key = tabConfigKey(tabId);
   const data = await chrome.storage.local.get(key);
   const { migrateConfig, wantsCapture } = self.DLPresets;
@@ -141,6 +152,9 @@ async function pruneOrphanTabConfigs() {
 }
 
 const chromeAsync = {
-  sendMessageTab: (tabId, msg) => new Promise(resolve => chrome.tabs.sendMessage(tabId, msg, resolve)),
+  sendMessageTab: (tabId, msg) => new Promise(resolve => chrome.tabs.sendMessage(tabId, msg, resp => {
+    void chrome.runtime.lastError; // tab without content script: expected, avoid "Unchecked lastError"
+    resolve(resp);
+  })),
 };
 

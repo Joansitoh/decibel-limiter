@@ -3,6 +3,7 @@
  */
 import { readTheme } from './theme.js';
 import {
+  COACHMARK_STEPS,
   THEME_KEY,
   applyTheme,
   clampDB,
@@ -77,6 +78,8 @@ class Popup {
 
   async init() {
     this.elements = cacheElements();
+    // Best quality is Chromium-only (tabCapture); elsewhere the element path is the only one.
+    if (!chrome.tabCapture) this.hideHqUI();
     localize(this.elements);
     buildScale(this.elements);
     paintScenarioLimits();
@@ -94,6 +97,15 @@ class Popup {
     playIntro(this.elements);
     this.checkWhatsNew();
     this.maybeShowReview();
+  }
+
+  hideHqUI() {
+    const el = this.elements;
+    document.querySelector('.foot-block')?.setAttribute('hidden', '');
+    el.pathSelector?.previousElementSibling?.setAttribute('hidden', '');
+    el.pathSelector?.setAttribute('hidden', '');
+    const i = COACHMARK_STEPS.findIndex(st => st.targetId === 'pathToggle');
+    if (i >= 0) COACHMARK_STEPS.splice(i, 1);
   }
 
   uiCtx() {

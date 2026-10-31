@@ -209,7 +209,7 @@ if (requiredDB < currentDB) {
 
 ### Cross-Browser Compatibility
 
-- **Target**: Chromium-based browsers (Edge, Opera, etc.)
+- **Target**: Chromium-based browsers
 - **Required APIs**: Web Audio API, tabCapture, offscreen documents
 - **Manifest V3**: Uses service worker architecture
 - **Feature Detection**: Graceful degradation for unsupported features
@@ -444,7 +444,7 @@ if (requiredDB < currentDB) {
 
 ### Compatibilidad entre Navegadores
 
-- **Objetivo**: Navegadores basados en Chromium (Edge, Opera, etc.)
+- **Objetivo**: Navegadores basados en Chromium
 - **APIs Requeridas**: Web Audio API, tabCapture, documentos offscreen
 - **Manifest V3**: Usa arquitectura de service worker
 - **Detección de Características**: Degradación elegante para características no soportadas

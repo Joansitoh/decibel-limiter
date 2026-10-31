@@ -119,7 +119,7 @@ Decibel Limiter leverages the **Web Audio API** to provide intelligent, real-tim
    ```bash
    git clone https://github.com/yourusername/decibel-limiter.git
    ```
-2. Open your browser and navigate to `chrome://extensions/`
+2. Open your browser and go to its extensions page
 3. Enable **"Developer mode"** (toggle in top-right corner)
 4. Click **"Load unpacked"**
 5. Select the extension folder

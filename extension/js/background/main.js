@@ -2,7 +2,9 @@
  * @file Background service worker — messaging, metering, tab lifecycle
  * @module BackgroundScript
  */
-importScripts('../presets.js', 'storage.js', 'capture.js');
+// Chromium runs this as a service worker (importScripts); Firefox runs it as an event
+// page whose manifest lists presets/storage/capture before this file.
+if (typeof importScripts === 'function') importScripts('../presets.js', 'storage.js', 'capture.js');
 
 const {
   DEFAULT_CONFIG,
@@ -64,6 +66,7 @@ async function tabState(tabId, cfg, hostHint = null) {
     ...cfg,
     host,
     domainSaved: !!(host && domains[host]),
+    hqSupported: HQ_SUPPORTED,
     captureActive: tabId != null && activeCaptures.has(tabId),
     // Which tab really holds Best quality (null = none) — "on another tab" must not be a guess.
     hqTabId: activeCaptures.keys().next().value ?? null
