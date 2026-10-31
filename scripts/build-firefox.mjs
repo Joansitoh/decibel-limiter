@@ -13,7 +13,7 @@ const manifestPath = path.join(out, 'manifest.json');
 const m = JSON.parse(readFileSync(manifestPath, 'utf8'));
 m.permissions = m.permissions.filter(p => !['tabCapture', 'offscreen'].includes(p));
 m.background = { scripts: ['js/presets.js', 'js/background/storage.js', 'js/background/capture.js', 'js/background/main.js'] };
-m.browser_specific_settings = { gecko: { id: 'decibel-limiter@example.com', strict_min_version: '140.0', data_collection_permissions: { required: ['none'] } } };
+m.browser_specific_settings = { gecko: { id: 'decibel-limiter@joancabrera.es', strict_min_version: '140.0', data_collection_permissions: { required: ['none'] } } };
 writeFileSync(manifestPath, JSON.stringify(m, null, 2));
 rmSync(path.join(out, 'offscreen.html'), { force: true });
 rmSync(path.join(out, 'js', 'offscreen.js'), { force: true });
