@@ -1,0 +1,42 @@
+name: Feature or change request
+description: Suggest something new or a change in behavior. Needs agreement before anyone writes code.
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Features and behavior changes need the maintainer's approval in this issue **before** a pull request.
+        Please read [what we're looking for](https://github.com/Joansitoh/decibel-limiter/blob/main/CONTRIBUTING.md#what-were-looking-for) first:
+        new permissions, network access, telemetry and new dependencies are rarely or never accepted.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today? Describe the problem before the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you imagine it working for the user.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and workarounds
+      description: Other ways to solve it, including existing settings you tried.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to implement this myself once the approach is agreed.
+  - type: checkboxes
+    id: ai
+    attributes:
+      label: AI disclosure
+      options:
+        - label: If an AI tool helped write this request, I have reviewed and trimmed it.
+          required: true

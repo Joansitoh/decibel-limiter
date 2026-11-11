@@ -1,0 +1,74 @@
+name: Bug report
+description: Something doesn't work, sounds wrong, or breaks a site.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please [search existing issues](https://github.com/Joansitoh/decibel-limiter/issues?q=is%3Aissue) first.
+        Security problems go to [a private report](https://github.com/Joansitoh/decibel-limiter/security/advisories/new), not here.
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: From `chrome://extensions` or `about:addons`.
+      placeholder: "1.5.1"
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser, version and operating system
+      placeholder: "Chrome 142 on Windows 11 / Firefox 145 on Fedora 44"
+    validations:
+      required: true
+  - type: dropdown
+    id: path
+    attributes:
+      label: Audio path
+      description: Shown at the bottom of the popup.
+      options:
+        - Best quality
+        - Fullscreen-friendly
+        - Both
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: site
+    attributes:
+      label: Site and page
+      description: The exact URL where it happens, if it's site-specific.
+      placeholder: "https://www.youtube.com/watch?v=…"
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Starting from a fresh tab. Include the scenario and ceiling you used.
+      placeholder: |
+        1. Open …
+        2. Turn protection on with the Night scenario
+        3. Play …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected and what happened
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Errors or recordings
+      description: |
+        Errors from the service worker console (`chrome://extensions` → Inspect views) or the page console.
+        A short screen recording with sound helps a lot for audio problems.
+      render: text
+  - type: checkboxes
+    id: ai
+    attributes:
+      label: AI disclosure
+      options:
+        - label: If an AI tool helped write this report, I have reviewed and trimmed it, and everything in it is something I observed.
+          required: true

@@ -1,334 +1,152 @@
-# 🔊 Decibel Limiter
-
 <div align="center">
 
-![Decibel Limiter Logo](extension/icons/icon128.png)
+<img src="extension/icons/icon128.png" alt="" width="96" height="96">
 
-**Protect your hearing and control audio volume automatically in your browser**
+# Decibel Limiter
 
-[![Browser Web Store](https://img.shields.io/chrome-web-store/v/jhdflfacjalpcajleapijmclnbilnjlh?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTING.md)
+**Never hear the spike.** A real lookahead limiter for every browser tab: loud ads, jump scares and sudden peaks
+are stopped *before* they reach your ears.
 
-![Extension Stats](https://chrome-extension-readme-stats.vercel.app/api?extension_id=jhdflfacjalpcajleapijmclnbilnjlh&theme=chartreuse-dark&developer_name=Decibel%20Limiter)
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jhdflfacjalpcajleapijmclnbilnjlh?logo=googlechrome&logoColor=white&label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/decibel-limiter/jhdflfacjalpcajleapijmclnbilnjlh)
+[![Users](https://img.shields.io/chrome-web-store/users/jhdflfacjalpcajleapijmclnbilnjlh?label=users)](https://chromewebstore.google.com/detail/decibel-limiter/jhdflfacjalpcajleapijmclnbilnjlh)
+[![Firefox Add-ons](https://img.shields.io/amo/v/decibel-limiter?logo=firefoxbrowser&logoColor=white&label=Firefox%20Add-ons)](https://addons.mozilla.org/firefox/addon/decibel-limiter/)
+[![CI](https://github.com/Joansitoh/decibel-limiter/actions/workflows/ci.yml/badge.svg)](https://github.com/Joansitoh/decibel-limiter/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-[Features](#-key-features) • [Installation](#-installation) • [Usage](#-usage) • [How It Works](#-how-it-works) • [Contributing](#-contributing)
+[Features](#features) · [Install](#install) · [How it works](#how-it-works) · [Privacy](#privacy) · [Contributing](#contributing)
+
+![Decibel Limiter: never hear the spike](img/store/screenshot-1-hero.png)
 
 </div>
 
----
+## Why
 
-## 📝 Overview
+Most volume extensions react *after* a sound gets loud, so you still hear the first instant of every spike.
+Decibel Limiter delays the audio by about 10 milliseconds, sees the peak coming, and has already turned it down
+when it plays. Nothing gets through above the ceiling you set.
 
-**Decibel Limiter** is a powerful browser extension that automatically monitors and limits audio volume across all your browser tabs. Designed to protect your hearing and provide a consistent listening experience, it prevents sudden loud sounds from startling you or causing discomfort while browsing.
+Good for headphones, late nights, shared spaces, autoplaying ads, and anyone who'd rather not be startled.
 
-Perfect for night browsing, shared workspaces, or anyone who values their hearing health.
+## Features
 
-![Decibel Limiter: never hear the spike](img/store/screenshot-1-hero.png)
+- **Lookahead brickwall limiter** in an AudioWorklet, on the audio thread. Instant attack, smooth recovery.
+- **Scenarios**: Night, Balanced, Social and Music, one tap each. Or drag the ceiling anywhere from −60 to 0 dBFS.
+- **Even volume** (optional): evens out quiet and loud parts before the limiter. Off for Music.
+- **Two audio paths**:
+  - **Best quality** captures the whole tab, so every sound is covered, even players that hide their audio.
+  - **Fullscreen-friendly** works inside the page, so the player's own fullscreen button keeps working.
+- **Remembers each site**, or applies one setting everywhere.
+- **Live meter** with the current level and how much is being reduced.
+- **Keyboard shortcuts**: <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> toggles protection,
+  <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> cycles scenarios (change them in your browser's shortcut settings).
+- **Export and import** settings, light and dark theme, English and Spanish.
 
 <div align="center">
 
 ![Peaks are cut before you hear them](img/store/screenshot-2-protection.png)
 ![One tap for every moment](img/store/screenshot-3-scenarios.png)
+![Best quality or fullscreen, your call](img/store/screenshot-4-quality.png)
 
 </div>
 
-## ✨ Key Features
+## Install
 
-### 🎯 Core Functionality
-- **🔄 Real Lookahead Limiting** - Buffers a few milliseconds of audio so gain is already ducked *before* a loud transient reaches your speakers
-- **🏆 Best quality by default** - Tab capture path so peaks are stopped before you hear them (Fullscreen-friendly fallback available)
-- **🌙 Scenario presets** - Night, Balanced, Social, Music — plus optional leveling (off for Music)
-- **🔖 Per-site memory** - Remembers settings per domain (or apply one setting to all sites)
-- **📊 Live Audio Monitoring** - Meter + live gain reduction readout
-- **🎚️ Customizable Threshold** - Fine-tune between 0 and -60 dBFS in Settings
+| Browser | Get it | Notes |
+|---|---|---|
+| Chrome, Edge, Brave, Opera, Vivaldi… (Chromium 116+) | [Chrome Web Store](https://chromewebstore.google.com/detail/decibel-limiter/jhdflfacjalpcajleapijmclnbilnjlh) | Both audio paths |
+| Firefox 140+ | [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/decibel-limiter/) | Fullscreen-friendly path only: Firefox has no tab capture |
 
-### 🎨 User Experience
-- **📈 Clear interface** - Scenarios first; advanced limiter controls in Settings
-- **⌨️ Shortcuts** - Alt+Shift+D toggle, Alt+Shift+S cycle scenario
-- **⚡ Lightweight & Fast** - AudioWorklet on the audio thread
-- **🔒 Privacy-Focused** - All processing local, no data collection, export/import settings
+To run the latest code from this repository, see [Development setup](CONTRIBUTING.md#development-setup). There is
+no build step: load the `extension/` folder as an unpacked extension.
 
-### 🌐 Compatibility
-- **Popular Streaming Sites** - Works flawlessly with Netflix, YouTube, Spotify, and more
-- **Shadow DOM Support** - Advanced detection for complex web applications
-- **Dynamic Content** - Automatically detects media elements added after page load
+## Usage
 
-## 🎯 Use Cases
+1. Click the Decibel Limiter icon in the toolbar.
+2. Turn **Protection** on.
+3. Pick a scenario, or drag the orange ceiling line on the meter. Peaks above it are stopped.
+4. Optionally switch the audio path with the chip at the bottom of the popup.
 
-| Scenario | Benefit |
-|----------|---------|
-| 👂 **Hearing Protection** | Prevent hearing damage from unexpected loud sounds |
-| 🌃 **Night Browsing** | Watch content late without disturbing others |
-| 🏢 **Work Environments** | Avoid embarrassing volume spikes in shared spaces |
-| 📊 **Volume Normalization** | Consistent audio levels across different websites |
-| 👨‍👩‍👧‍👦 **Parental Control** | Protect children's hearing with maximum volume limits |
-| 🎮 **Gaming & Streaming** | Prevent audio peaks during intense moments |
+The badge on the icon shows `HQ` when Best quality is active on the tab and `ON` when it's protected inside the
+page. Only one tab at a time can use Best quality; other tabs stay protected in Fullscreen-friendly mode.
 
-## 🔍 How It Works
+| Ceiling | Feels like |
+|---|---|
+| −10 to −15 dBFS | Light touch, only real spikes are caught (Music: −12) |
+| −20 dBFS | Everyday browsing (Balanced) |
+| −26 to −30 dBFS | Night, or videos with very loud moments (Night: −26, Social: −30) |
+| below −30 dBFS | Very quiet, heavy limiting |
 
-Decibel Limiter leverages the **Web Audio API** to provide intelligent, real-time audio control:
+## How it works
 
 ```
-1. 🔎 Detection Phase
-   └─> Scans page for <audio> and <video> elements
-       └─> Includes Shadow DOM elements (Netflix, etc.)
-           └─> Monitors for dynamically added media
-
-2. 📊 Analysis Phase
-   └─> AnalyserNode measures volume in real-time
-       └─> Converts to dBFS (decibels relative to full scale)
-           └─> Compares against user-defined threshold
-
-3. 🎚️ Lookahead Limiting Phase
-   └─> Buffers a few ms of audio; if an upcoming block exceeds the ceiling, gain drops immediately — before it's heard
-       └─> Below the ceiling? Gain restores gradually (release speed set by preset)
-           └─> A safety compressor after the computed gain guards against any remaining clipping
-               └─> Maintains natural listening experience, without ever sounding louder than your limit
-
-4. 💾 Persistence
-   └─> Settings saved per-tab by default (cleared when the tab closes)
-       └─> Or turn on "Apply to all sites" to save one setting globally and push it to every tab/domain
-           └─> Global settings persist across browser restarts
+page or tab audio → Even volume (optional) → lookahead limiter (AudioWorklet) → safety compressor → speakers
 ```
 
-### Technical Architecture
+- **Best quality** uses `chrome.tabCapture` and processes the tab's audio in an offscreen document.
+- **Fullscreen-friendly** connects each `<audio>`/`<video>` element on the page (including open shadow DOM and
+  elements added later) to the same chain.
+- The limiter buffers four 128-sample blocks (about 10.7 ms at 48 kHz). Each block's required gain is known before
+  it plays, so attack is instant and the output never exceeds the ceiling.
 
-- **Client-Side Processing** - All audio analysis happens in your browser
-- **Zero External Requests** - No data sent to servers, completely private
-- **Mutation Observers** - Detect new media elements dynamically
-- **Performance Optimized** - Efficient algorithms minimize CPU usage
-- **Cross-Site Compatible** - Works with modern web standards
+The full picture (config resolution, the one-tab Best quality rule, messages, Firefox specifics) is in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-- ## 📋 Requirements
+## Privacy
 
-- **Browser**: Chromium-based browser version 88 or higher
-- **Permissions**: 
-  - Active tab access (to detect and control media)
-  - Local storage (to save preferences)
+Everything happens in your browser. No analytics, no accounts, no network requests, no remote code. Settings are
+stored locally with `chrome.storage` and only leave your computer if you export them yourself.
 
-## 📥 Installation
+| Permission | Why it's needed |
+|---|---|
+| `storage` | Save your settings and per-site memory |
+| `activeTab`, `tabCapture`, `offscreen` | Best quality: capture the current tab's audio after you open the popup or use a shortcut, and process it (Chromium only) |
+| `downloads` | Export your settings to a file |
+| Runs on all sites | Fullscreen-friendly needs to reach audio and video elements on any page. It doesn't read page content |
 
-### From the browser extension store (Recommended)
-1. Visit the extension store page (link provided in the project header)
-2. Click **"Add to browser"**
-3. Confirm the installation
-
-### Manual Installation (Development)
-1. Download or clone this repository
-   ```bash
-   git clone https://github.com/yourusername/decibel-limiter.git
-   ```
-2. Open your browser and go to its extensions page
-3. Enable **"Developer mode"** (toggle in top-right corner)
-4. Click **"Load unpacked"**
-5. Select the extension folder
-
-## 🚀 Usage
-
-### Quick Start
-
-1. **Click** the Decibel Limiter icon in your browser toolbar
-2. **Adjust** the threshold slider to your preferred limit (dBFS)
-3. **Enable** the limiter by clicking the activation button
-4. **Monitor** the real-time volume meter as you browse
-
-### Understanding dBFS Values
-
-| dBFS Range | Description | Recommended For |
-|------------|-------------|-----------------|
-| **0 to -10** | Very loud, minimal limiting | Noisy environments |
-| **-10 to -20** | Moderate limiting | General browsing |
-| **-20 to -30** | Significant limiting | Night browsing |
-| **-30 to -60** | Heavy limiting | Sensitive environments |
-
-### Pro Tips
-
-- 💡 Start with **-15 dBFS** and adjust based on your comfort
-- 🎵 Different content types may need different thresholds
-- 🔄 The extension remembers settings per-tab automatically
-- 🎯 Green indicator means limiter is active and working
-
-## ❓ Troubleshooting
-
-### Common Issues and Solutions
+## Troubleshooting
 
 <details>
-<summary><strong>Extension doesn't detect audio</strong></summary>
+<summary><strong>No level on the meter, or no limiting</strong></summary>
 
-- Ensure audio is actually playing (not paused)
-- Refresh the page after enabling the extension
-- Check that the tab isn't muted
-- Try closing and reopening the popup
+- Make sure something is playing and the tab isn't muted.
+- Reload the page after installing or updating the extension.
+- On Best quality, open the popup on that tab once: the browser only allows tab capture after you invoke the
+  extension there. If another tab already has Best quality, this one is protected in Fullscreen-friendly mode.
 </details>
 
 <details>
-<summary><strong>Limiting doesn't work on specific sites</strong></summary>
+<summary><strong>The player's fullscreen button doesn't work well</strong></summary>
 
-- Some sites use proprietary audio systems (rare)
-- Try refreshing the page with the extension already enabled
-- Check browser console for any error messages
-- Report unsupported sites via GitHub Issues
+Tab capture can conflict with player fullscreen. Switch that site to **Fullscreen-friendly** with the chip at the
+bottom of the popup (it's remembered per site), or use the browser's fullscreen (F11).
 </details>
 
 <details>
-<summary><strong>Audio sounds distorted or cuts out</strong></summary>
+<summary><strong>Audio sounds squashed or pumps</strong></summary>
 
-- Increase the threshold (move slider closer to 0 dBFS)
-- The audio may naturally be very dynamic
-- Try adjusting by -5 dBFS increments until comfortable
+Raise the ceiling a few dB, turn off **Even volume**, or try another recovery speed in Settings (Fast comes back
+sooner after a peak, Slow is smoother). Very dynamic content at a low ceiling will always be limited hard; that's
+the protection working.
 </details>
 
 <details>
-<summary><strong>High CPU usage</strong></summary>
+<summary><strong>It doesn't work on a specific site</strong></summary>
 
-- This is rare but can happen with multiple tabs
-- Consider enabling only on tabs that need limiting
-- Close unused tabs with active audio
+Try the other audio path first. If it still fails, [open a bug report](https://github.com/Joansitoh/decibel-limiter/issues/new/choose)
+with the site, your browser and the audio path.
 </details>
 
-## 🔒 Privacy & Security
+## Contributing
 
-We take your privacy seriously:
+Bug fixes, site compatibility fixes and translations are very welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md)
+first: it covers setup, tests, the commit style and the policy for **AI-assisted contributions**. Coding agents
+should start at [AGENTS.md](AGENTS.md).
 
-- ✅ **No Data Collection** - Zero telemetry or analytics
-- ✅ **No External Requests** - Everything runs locally
-- ✅ **No Account Required** - Works immediately after installation
-- ✅ **Open Source** - Code available for audit
-- ✅ **Minimal Permissions** - Only requests what's necessary
-- ✅ **Offline Capable** - No internet required after installation
+- [Architecture](docs/ARCHITECTURE.md) · [Changelog](CHANGELOG.md) · [Security policy](SECURITY.md) ·
+  [Code of conduct](CODE_OF_CONDUCT.md)
 
-## 🛠️ Development
+## License
 
-### Tech Stack
-
-- **Core**: Vanilla JavaScript (ES6+)
-- **APIs**: Web Audio API (AudioWorklet, DynamicsCompressorNode), browser extensions APIs (Chromium-compatible)
-- **UI**: HTML5, CSS3 (studio-style dark theme)
-- **Storage**: browser storage APIs (Chromium-compatible)
-
-### Project Structure
-
-```
-decibel-limiter/
-├── extension/             # Everything that ships in the packaged extension
-│   ├── manifest.json      # Extension configuration
-│   ├── popup.html         # Popup UI
-│   ├── popup.css
-│   ├── offscreen.html
-│   ├── js/
-│   │   ├── background/    # Service worker (main, storage, capture)
-│   │   ├── popup/         # Popup UI modules
-│   │   ├── content.js
-│   │   ├── offscreen.js
-│   │   ├── presets.js
-│   │   ├── limiter-processor.js
-│   ├── icons/             # Extension icons
-│   └── _locales/          # i18n messages
-├── tests/                 # Dev-only checks, not shipped in the extension
-│   ├── limiter-processor.test.js
-│   └── test-audio.html
-├── build.ps1              # Zips extension/ into a store-ready package
-└── img/                   # Documentation images
-```
-
-### Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/decibel-limiter.git
-
-# Navigate to directory
-cd decibel-limiter
-
-# Load in browser as unpacked extension
-# No build step required - pure vanilla JS!
-```
-
-## 👥 Contributing
-
-We welcome contributions from the community! Here's how you can help:
-
-### Ways to Contribute
-
-- 🐛 **Report Bugs** - Found an issue? Let us know!
-- 💡 **Suggest Features** - Have an idea? We'd love to hear it
-- 📝 **Improve Documentation** - Help others understand the project
-- 🔧 **Submit Pull Requests** - Code contributions are appreciated
-
-### Contribution Process
-
-1. **Fork** the repository
-2. **Create** a feature branch
-   ```bash
-   git checkout -b feature/amazing-feature
-   ```
-3. **Commit** your changes
-   ```bash
-   git commit -m 'Add amazing feature'
-   ```
-4. **Push** to your branch
-   ```bash
-   git push origin feature/amazing-feature
-   ```
-5. **Open** a Pull Request
-
-### Development Guidelines
-
-- Follow existing code style and conventions
-- Test thoroughly across different websites
-- Update documentation for new features
-- Keep commits focused and well-described
-
-## 🗺️ Roadmap
-
-- [x] Support for more streaming platforms
-- [x] Multi-language support
-- [x] Compression/leveling options (scenario-based)
-- [x] Export/import settings
-- [x] Audio presets for different scenarios (Night / Balanced / Social / Music)
-- [x] Keyboard shortcuts
-- [x] Best-quality (enhanced) path as default
-- [x] Per-domain memory
-- [ ] More locales / parental lock (if demanded)
-
-## 📊 Statistics
-
-View live statistics for this extension:
-
-![Extension Statistics](https://chrome-extension-readme-stats.vercel.app/api?extension_id=jhdflfacjalpcajleapijmclnbilnjlh&theme=chartreuse-dark&developer_name=Decibel%20Limiter)
-
-## 📄 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License - Copyright (c) 2024
-Permission is hereby granted, free of charge, to any person obtaining a copy...
-```
-
-## 🙏 Acknowledgments
-
-- Built with the powerful **Web Audio API**
-- Inspired by the need for better audio control on the web
-- Thanks to all contributors and users for feedback and support
-
-## 📞 Support & Contact
-
-Need help or want to get in touch?
-
-- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/decibel-limiter/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/decibel-limiter/discussions)
-- ⭐ **Rate Us**: [Browser Web Store](https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh)
-
----
-
-<div align="center">
-
-**Made with ❤️ for a better, safer browsing experience**
-
-If this extension helped you, consider giving it a ⭐ on GitHub!
-
-[⬆ Back to Top](#-decibel-limiter)
-
-</div>
+[MIT](LICENSE). Bundled third-party files (GSAP, fonts) keep their own licenses, listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

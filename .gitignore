@@ -10,3 +10,9 @@ tests/videoplayback.mp4
 
 # PowerShell oops: "$_.FullName" appends literal ".FullName" to the path
 *.FullName
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+*.log
