@@ -43,6 +43,36 @@ assert(presets.migrateConfig({ limiterStrength: 'custom', limiterRelease: 14 }).
   'legacy custom release maps to nearest preset');
 assert(presets.migrateConfig({ limiterStrength: 'strong', limiterRelease: 30 }).limiterRelease === 4,
   'release always follows the preset');
+assert(presets.migrateConfig({ limitDB: 12 }).limitDB === 0, 'ceiling above 0 dBFS clamps to 0 (imported files)');
+assert(presets.migrateConfig({ limitDB: -200 }).limitDB === -60, 'ceiling below -60 dBFS clamps to -60');
+assert(presets.migrateConfig({ limitDB: null }).limitDB === presets.DEFAULT_CONFIG.limitDB &&
+  presets.migrateConfig({ limitDB: '-10' }).limitDB === presets.DEFAULT_CONFIG.limitDB, 'non-numeric ceiling falls back to default');
+
+// i18n: every locale has the same keys as en, and every key the UI/manifest asks for exists.
+{
+  const extDir = path.join(root, 'extension');
+  const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'));
+  const localesDir = path.join(extDir, '_locales');
+  const en = readJson(path.join(localesDir, 'en', 'messages.json'));
+  const enKeys = Object.keys(en).sort().join();
+  for (const loc of fs.readdirSync(localesDir)) {
+    const msgs = readJson(path.join(localesDir, loc, 'messages.json'));
+    assert(Object.keys(msgs).sort().join() === enKeys, `locale ${loc} has exactly the en keys`);
+    assert(Object.values(msgs).every(m => typeof m.message === 'string' && m.message.trim()),
+      `locale ${loc} has no empty messages`);
+  }
+  const html = fs.readFileSync(path.join(extDir, 'popup.html'), 'utf8');
+  const manifest = fs.readFileSync(path.join(extDir, 'manifest.json'), 'utf8');
+  const sources = ['js/content.js', 'js/background/capture.js', 'js/popup/ui.js', 'js/popup/main.js']
+    .map(f => fs.readFileSync(path.join(extDir, f), 'utf8')).join('\n');
+  const used = new Set([
+    ...[...html.matchAll(/data-i18n(?:-title|-aria)?="([^"]+)"/g)].map(m => m[1]),
+    ...[...manifest.matchAll(/__MSG_(\w+)__/g)].map(m => m[1]),
+    ...[...sources.matchAll(/getMessage\('(\w+)'\)/g)].map(m => m[1])
+  ]);
+  const missing = [...used].filter(k => !Object.hasOwn(en, k));
+  assert(missing.length === 0, `all used i18n keys exist in en (missing: ${missing.join(', ') || 'none'})`);
+}
 
 function loadWorkerScripts() {
   const captureCalls = [];

@@ -100,6 +100,9 @@
     if (!raw || typeof raw !== 'object') return { ...DEFAULT_CONFIG };
     const cfg = { ...DEFAULT_CONFIG, ...raw };
     delete cfg.limiterFloor; // removed setting — the brickwall ceiling always overrode it
+    // Ceiling must stay a real dBFS value in range: imported files and old storage are untrusted,
+    // and anything above 0 dBFS would silently switch protection off.
+    cfg.limitDB = Number.isFinite(cfg.limitDB) ? Math.max(-60, Math.min(0, cfg.limitDB)) : DEFAULT_CONFIG.limitDB;
     // Unknown or removed paths ('auto' always behaved like capture) → Best quality.
     if (!AUDIO_PATHS.has(cfg.audioPath)) cfg.audioPath = 'capture';
     if (!SCENARIOS.has(cfg.scenario)) cfg.scenario = 'custom';
