@@ -1,22 +1,13 @@
 /**
  * Popup config: service-worker round-trips (the SW owns config resolution + storage).
  */
-const { migrateConfig } = self.DLPresets;
+const { migrateConfig, hostFromUrl } = self.DLPresets;
 
 export async function identifyActiveTab() {
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tabs.length) throw new Error('No active tab found');
-  const tab = tabs[0];
-  let host = null;
-  try {
-    const url = tab.url || '';
-    if (url && !url.startsWith('chrome://') && !url.startsWith('chrome-extension://') && !url.startsWith('about:')) {
-      host = new URL(url).hostname || null;
-    }
-  } catch (_) {
-    host = null;
-  }
-  return { tabId: tab.id, host };
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) throw new Error('No active tab found');
+  // Only http(s) pages have a site to remember (not chrome://, about:, extension pages…).
+  return { tabId: tab.id, host: hostFromUrl(tab.url || '') };
 }
 
 /** Resolves the SW response, or null on error / no SW. */

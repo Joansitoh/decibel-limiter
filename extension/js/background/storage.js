@@ -66,16 +66,6 @@ function resolveHost(hostHint, tabUrlHost) {
   return tabUrlHost || null;
 }
 
-/**
- * Resolve effective config:
- * 1) global apply-all (path may stay per-tab)
- * 2) per-tab if this tab already has saved config (authoritative while tab lives)
- * 3) domain memory (new tabs on a known site)
- * 4) defaults
- *
- * @param {number} tabId
- * @param {{ host?: string|null }} [opts] host hint from content (required when tabs.url is opaque)
- */
 /** Best quality needs tabCapture + offscreen (Chromium only; Firefox has neither). */
 const HQ_SUPPORTED = !!(chrome.tabCapture && chrome.offscreen);
 
@@ -87,6 +77,16 @@ async function getTabConfig(tabId, opts = {}) {
   return cfg;
 }
 
+/**
+ * Resolve effective config:
+ * 1) global apply-all (path may stay per-tab)
+ * 2) per-tab if this tab already has saved config (authoritative while tab lives)
+ * 3) domain memory (new tabs on a known site)
+ * 4) defaults
+ *
+ * @param {number} tabId
+ * @param {{ host?: string|null }} [opts] host hint from content (required when tabs.url is opaque)
+ */
 async function resolveTabConfig(tabId, opts = {}) {
   const key = tabConfigKey(tabId);
   const data = await chrome.storage.local.get(key);
