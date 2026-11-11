@@ -67,6 +67,7 @@ See `investigate/04-normal-vs-enhanced.md` and `extension/js/presets.js`.
 - **Event Handling**: Manages audio element lifecycle
 - **Shadow DOM Support**: Recursively scans shadow roots
 - **Gesture Handling**: Resumes AudioContext on user interaction (autoplay policy)
+- **DRM safety (Firefox)**: Gecko rejects `setMediaKeys()` on an element already routed through `createMediaElementSource()`, which breaks DRM players (Prime Video, Netflix). On Firefox an element is only wired once it has MediaKeys, or once it reaches `HAVE_FUTURE_DATA` with no `encrypted` event on the element or page.
 
 ### Offscreen Document (Enhanced Mode)
 

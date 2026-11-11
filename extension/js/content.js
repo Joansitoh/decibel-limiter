@@ -6,6 +6,20 @@
 
 const { SAFETY_COMPRESSOR, applyLeveling, levelingProfileFor } = self.DLPresets;
 
+/**
+ * Gecko: createMediaElementSource() marks the element audio-captured and
+ * HTMLMediaElement.setMediaKeys() then throws NotSupportedError, so DRM players
+ * (Prime Video, Netflix…) fail to start. Capturing after keys are attached is allowed.
+ * getBrowserInfo is Firefox-only.
+ */
+const CAPTURE_BLOCKS_EME = typeof browser !== 'undefined'
+  && typeof browser.runtime?.getBrowserInfo === 'function';
+
+/** Media events that (re)try wiring a not-yet-wired element. */
+const WIRE_EVENTS = CAPTURE_BLOCKS_EME
+  ? ['play', 'playing', 'canplay', 'timeupdate']
+  : ['play', 'playing'];
+
 const State = Object.freeze({
   IDLE: 0,
   INITIALIZING: 1,
@@ -31,6 +45,10 @@ class Limiter {
   /** @type {Set<{limiter: AudioWorkletNode, leveling: DynamicsCompressorNode, makeup: GainNode}>} */
   #graphs = new Set();
   #processed = new WeakSet();
+  /** Elements that fired `encrypted` (DRM) — Gecko-only bookkeeping. */
+  #encrypted = new WeakSet();
+  /** Any `encrypted` seen on this page: elements without MediaKeys may get them later. */
+  #emePage = false;
   #config = {
     enabled: false,
     limitDB: -20,
@@ -49,6 +67,8 @@ class Limiter {
 
     window.addEventListener('click', this.#resumeContextOnGesture, true);
     window.addEventListener('keydown', this.#resumeContextOnGesture, true);
+    // `encrypted` doesn't bubble; capture phase still sees it (light DOM only — see #watchElement).
+    if (CAPTURE_BLOCKS_EME) window.addEventListener('encrypted', this.#onEncrypted, true);
     this.#attachFullscreenListener();
     this.#setupMessaging();
     this.#requestConfig(() => {
@@ -146,13 +166,14 @@ class Limiter {
   #connectElement(el) {
     if (!el || this.#processed.has(el)) return;
     if (this.#captureActive || !this.#config.enabled) return;
+    if (!this.#safeToCapture(el)) return; // WIRE_EVENTS retry later
     if (!this.#createAudioContext()) return;
     this.#processed.add(el);
     this.#workletReady.then(() => safe(() => this.#wireElement(el)));
   }
 
   #wireElement(el) {
-    if (this.#captureActive || !this.#config.enabled) {
+    if (this.#captureActive || !this.#config.enabled || !this.#safeToCapture(el)) {
       // State flipped while the worklet loaded: un-mark so a later enable / HQ release can still wire it.
       this.#processed.delete(el);
       this.#watchElement(el);
@@ -178,10 +199,29 @@ class Limiter {
       limiterNode.port.postMessage({ type: 'config', config: this.#config });
       applyLeveling(leveling, makeup, levelingProfileFor(this.#config));
       this.#graphs.add({ limiter: limiterNode, leveling, makeup });
+      this.#unwatchElement(el);
     } catch (err) {
       // Element already connected
     }
   }
+
+  /**
+   * Gecko only: is capturing `el` now guaranteed not to break a later setMediaKeys()?
+   * - MediaKeys already attached → yes (Gecko allows audio capture of EME media).
+   * - DRM seen on the element or page → wait for its MediaKeys.
+   * - HAVE_FUTURE_DATA without `encrypted` → clear media. Gecko dispatches `encrypted`
+   *   right after `loadedmetadata`, so HAVE_METADATA alone is too early to tell.
+   */
+  #safeToCapture(el) {
+    if (!CAPTURE_BLOCKS_EME || el.mediaKeys) return true;
+    if (this.#emePage || this.#encrypted.has(el)) return false;
+    return el.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA;
+  }
+
+  #onEncrypted = event => {
+    this.#emePage = true;
+    if (event.target instanceof HTMLMediaElement) this.#encrypted.add(event.target);
+  };
 
   #connectElementOnPlayback = event => {
     this.#connectElement(event.target);
@@ -203,8 +243,15 @@ class Limiter {
 
   #watchElement(el) {
     if (this.#processed.has(el)) return;
-    el.addEventListener('play', this.#connectElementOnPlayback, { once: true, capture: true });
-    el.addEventListener('playing', this.#connectElementOnPlayback, { once: true, capture: true });
+    // Same listener reference → re-watching is a no-op. Removed once wired.
+    WIRE_EVENTS.forEach(t => el.addEventListener(t, this.#connectElementOnPlayback, true));
+    // Window capture misses `encrypted` inside shadow roots; listen on the element too.
+    if (CAPTURE_BLOCKS_EME) el.addEventListener('encrypted', this.#onEncrypted, true);
+  }
+
+  #unwatchElement(el) {
+    WIRE_EVENTS.forEach(t => el.removeEventListener(t, this.#connectElementOnPlayback, true));
+    if (CAPTURE_BLOCKS_EME) el.removeEventListener('encrypted', this.#onEncrypted, true);
   }
 
   #setupObserver() {
