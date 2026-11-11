@@ -1,16 +1,26 @@
 {
   "name": "decibel-limiter",
   "private": true,
+  "description": "Browser extension that stops loud audio peaks before you hear them",
+  "license": "MIT",
+  "repository": "github:Joansitoh/decibel-limiter",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "test:unit": "node tests/verify-tab-handoff.mjs",
+    "test": "node tests/verify-tab-handoff.mjs",
     "test:e2e": "playwright test --project=chromium-extension",
     "test:e2e:headed": "playwright test --project=chromium-extension --headed",
     "test:reports": "playwright test --project=chromium-extension tests/e2e/waveform-report.spec.mjs",
     "test:hq": "playwright test --project=hq-manual --headed",
+    "build": "node scripts/build.mjs",
+    "build:firefox": "node scripts/build-firefox.mjs",
+    "lint:firefox": "npx --yes web-ext@8 lint --source-dir dist/firefox",
     "store-art": "node scripts/store-art.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0"
+    "@playwright/test": "^1.55.0",
+    "esbuild": "0.28.2"
   }
 }

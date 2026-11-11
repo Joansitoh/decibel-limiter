@@ -1,0 +1,72 @@
+name: Release
+
+# Bumping "version" in extension/manifest.json on main publishes a GitHub release with both store packages.
+# Nothing happens when a release for that version already exists.
+on:
+  push:
+    branches: [main]
+    paths: [extension/manifest.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Read version
+        id: version
+        run: |
+          version=$(node -p "require('./extension/manifest.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" > /dev/null; then
+            echo "v$version is already released, nothing to do."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Release notes from CHANGELOG.md
+        if: steps.version.outputs.exists != 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[?" v "\\]?( |$)" { on = 1; next }
+            on && /^## / { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no section for $VERSION. Add '## [$VERSION] - <date>' before bumping the version."
+            exit 1
+          fi
+
+      - if: steps.version.outputs.exists != 'true'
+        run: npm ci
+      - if: steps.version.outputs.exists != 'true'
+        run: npm test
+      - if: steps.version.outputs.exists != 'true'
+        run: npm run build
+      - if: steps.version.outputs.exists != 'true'
+        run: npm run lint:firefox
+
+      - name: Publish
+        if: steps.version.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" \
+            "dist/decibel-limiter-$VERSION.zip#Chrome Web Store package" \
+            "dist/decibel-limiter-$VERSION-firefox.zip#Firefox Add-ons package" \
+            --target "$GITHUB_SHA" --title "v$VERSION" --notes-file notes.md

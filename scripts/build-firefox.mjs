@@ -11,6 +11,7 @@ cpSync(path.join(root, 'extension'), out, { recursive: true });
 
 const manifestPath = path.join(out, 'manifest.json');
 const m = JSON.parse(readFileSync(manifestPath, 'utf8'));
+delete m.minimum_chrome_version;
 m.permissions = m.permissions.filter(p => !['tabCapture', 'offscreen'].includes(p));
 m.background = { scripts: ['js/presets.js', 'js/background/storage.js', 'js/background/capture.js', 'js/background/main.js'] };
 m.browser_specific_settings = { gecko: { id: 'decibel-limiter@joancabrera.es', strict_min_version: '140.0', data_collection_permissions: { required: ['none'] } } };
