@@ -8,7 +8,12 @@ const { SCENARIO_PRESETS } = self.DLPresets;
 
 export const WHATS_NEW_VERSION = 'hearing-guard-2026-10';
 export const WHATS_NEW_STORAGE_KEY = 'seenWhatsNew';
-export const STORE_URL = 'https://chrome.google.com/webstore/detail/jhdflfacjalpcajleapijmclnbilnjlh';
+const CWS_URL = 'https://chromewebstore.google.com/detail/decibel-limiter/jhdflfacjalpcajleapijmclnbilnjlh';
+const AMO_URL = 'https://addons.mozilla.org/firefox/addon/decibel-limiter/';
+/** Where "Rate" sends the user: this browser's store. */
+export const STORE_URL = typeof browser !== 'undefined' && typeof browser.runtime?.getBrowserInfo === 'function'
+  ? AMO_URL
+  : CWS_URL;
 
 export const COACHMARK_STEPS = [
   { targetId: 'mainToggle', textKey: 'coachmarkPower', openSettings: false },
