@@ -125,7 +125,7 @@ const SCEN = {
 
 function popup({
   id, x, y, scale = 1, theme = 'dark', level = -27, reduction = 4.2, ceiling = -20,
-  status = 'Evening volume · Best quality', scenario = 'balanced', even = true,
+  status = 'Even volume · Best quality', scenario = 'balanced', even = true,
   site = 'youtube.com', path = 'Best quality', pathIcon = 'hq', on = true
 }) {
   const T = THEMES[theme];
@@ -410,7 +410,7 @@ function themes() {
     ${text(96, 360, 'is being cut — at a glance.', { size: 21, fill: D.ink2 })}
     ${[['Follows your system theme', 'check'], ['Keyboard accessible', 'check'], ['English and Spanish', 'globe']].map(([l, ic], i) => `
       ${icon(ic, 96, 414 + i * 46, 24, D.accent)}${text(134, 432 + i * 46, l, { size: 19, fill: D.ink })}`).join('')}
-    ${popup({ id: 'pl', x: 540, y: 120, scale: 0.92, theme: 'light', level: -31, reduction: 2.6, ceiling: -26, scenario: 'night', status: 'Evening volume · Best quality', site: 'netflix.com' })}
+    ${popup({ id: 'pl', x: 540, y: 120, scale: 0.92, theme: 'light', level: -31, reduction: 2.6, ceiling: -26, scenario: 'night', status: 'Even volume · Best quality', site: 'netflix.com' })}
     ${popup({ id: 'pd', x: 878, y: 196, scale: 0.92, theme: 'dark', level: -18, reduction: 0.0, ceiling: -12, scenario: 'music', even: false, status: 'Peaks only · Fullscreen-friendly', site: 'open.spotify.com', path: 'Fullscreen-friendly', pathIcon: 'fs' })}
   `, {
     glow: [0.75, 0.55],

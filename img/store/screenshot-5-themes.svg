@@ -62,7 +62,7 @@
       <rect x="72" y="236.9" width="56" height="28" rx="8" fill="#ed5700" filter="url(#glow)"/>
       <text x="100" y="255.9" font-family="'JetBrains Mono', Consolas, monospace" font-size="13" font-weight="650" fill="#ffffff" text-anchor="middle">−26</text>
 
-      <text x="144" y="74" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="11.5" font-weight="600" fill="#c24600">Evening volume · Best quality</text>
+      <text x="144" y="74" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="11.5" font-weight="600" fill="#c24600">Even volume · Best quality</text>
       <rect x="144" y="90" width="220" height="40" rx="10" fill="rgba(237,87,0,0.14)" stroke="#ed5700" stroke-opacity="0.55"/>
       <text x="158" y="115" font-family="Outfit, 'Segoe UI', system-ui, sans-serif" font-size="13.5" font-weight="650" fill="#1f2428">Protecting</text>
       

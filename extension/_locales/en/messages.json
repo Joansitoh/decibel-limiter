@@ -97,7 +97,7 @@
   "domainSaved": { "message": "Saved", "description": "Domain remembered badge" },
   "forgetSite": { "message": "Forget", "description": "Forget domain button" },
   "statusModeEven": {
-    "message": "Evening volume",
+    "message": "Even volume",
     "description": "Status mode when leveling is on"
   },
   "statusModePeaks": {
