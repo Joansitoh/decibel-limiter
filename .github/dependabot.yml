@@ -4,6 +4,10 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    groups:
+      # One PR for all actions: they share lines in the same workflows and would conflict with each other.
+      actions:
+        patterns: ["*"]
   - package-ecosystem: npm
     directory: /
     schedule:
