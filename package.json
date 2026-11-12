@@ -20,7 +20,7 @@
     "store-art": "node scripts/store-art.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
+    "@playwright/test": "^1.65.0",
     "esbuild": "0.28.2"
   }
 }
