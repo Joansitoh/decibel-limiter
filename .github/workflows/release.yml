@@ -21,10 +21,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: npm
+          # No dependency cache: a poisoned cache must never reach a job that publishes releases.
 
       - name: Read version
         id: version
