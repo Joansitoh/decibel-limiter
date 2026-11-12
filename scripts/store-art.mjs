@@ -1,6 +1,6 @@
 /**
  * Chrome Web Store artwork: writes img/store/*.svg and renders *.png at the exact store sizes
- * (screenshots 1280×800, small promo 440×280, marquee 1400×560) using the extension's fonts.
+ * (screenshots 1280×800, small promo 440×280, marquee 1400×560) and the README banner using the extension's fonts.
  * Run: node scripts/store-art.mjs
  */
 import fs from 'fs';
@@ -456,6 +456,33 @@ function marquee() {
   });
 }
 
+/** README banner: the headline and the signature waveform, held under the ceiling. */
+function readmeBanner() {
+  const amps = envelope(92, 7, [[0.18, 0.97], [0.47, 1], [0.8, 0.93]]);
+  const x = 812;
+  const width = 700;
+  const cy = 240;
+  const half = 150;
+  const ceil = 0.42;
+  const top = cy - ceil * half;
+  const bottom = cy + ceil * half;
+  return canvas(1600, 480, `
+    ${brand(96, 72, 44)}
+    ${text(92, 236, 'Never hear', { size: 80, weight: 700, fill: HEAD })}
+    ${text(92, 322, 'the spike.', { size: 80, weight: 700, fill: 'url(#orange)' })}
+    ${text(96, 384, 'A real lookahead limiter for every browser tab.', { size: 25, fill: D.ink2 })}
+    ${bars(x, cy, width, half, amps, { color: '#ccccdc', gap: 3, opacity: 0.26 })}
+    ${bars(x, cy, width, half, amps, { color: 'url(#orange)', ceiling: ceil, clamp: true, gap: 3 })}
+    <line x1="${x}" x2="${x + width}" y1="${top}" y2="${top}" stroke="#ff780a" stroke-width="1.5" stroke-dasharray="6 5" opacity="0.9"/>
+    <line x1="${x}" x2="${x + width}" y1="${bottom}" y2="${bottom}" stroke="#ff780a" stroke-width="1.5" stroke-dasharray="6 5" opacity="0.9"/>
+    ${text(x + width, top - 12, 'ceiling −20 dBFS', { size: 15, weight: 600, font: MONO, fill: D.accentInk, anchor: 'end' })}
+  `, {
+    glow: [0.72, 0.5],
+    title: 'Decibel Limiter — Never hear the spike',
+    desc: 'README banner: the Decibel Limiter headline next to a waveform whose peaks are held under a dashed ceiling line.'
+  });
+}
+
 const ART = {
   'screenshot-1-hero': [hero, 1280, 800],
   'screenshot-2-protection': [protection, 1280, 800],
@@ -463,7 +490,8 @@ const ART = {
   'screenshot-4-quality': [quality, 1280, 800],
   'screenshot-5-themes': [themes, 1280, 800],
   'promo-small-440x280': [promoSmall, 440, 280],
-  'promo-marquee-1400x560': [marquee, 1400, 560]
+  'promo-marquee-1400x560': [marquee, 1400, 560],
+  'readme-banner-1600x480': [readmeBanner, 1600, 480]
 };
 
 // ——— Write SVGs + render PNGs ———
@@ -474,7 +502,9 @@ const fontCss = fontFace('Outfit', 'outfit-latin-wght-normal.woff2') + fontFace(
 
 const browser = await chromium.launch({ channel: 'chromium' });
 const page = await browser.newPage({ deviceScaleFactor: 1 });
-for (const [name, [build, w, h]] of Object.entries(ART)) {
+// `node scripts/store-art.mjs readme-banner-1600x480` renders only the named images.
+const only = process.argv.slice(2);
+for (const [name, [build, w, h]] of Object.entries(ART).filter(([n]) => !only.length || only.includes(n))) {
   const svg = build();
   fs.writeFileSync(path.join(outDir, `${name}.svg`), svg);
   await page.setViewportSize({ width: w, height: h });

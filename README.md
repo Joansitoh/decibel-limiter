@@ -1,11 +1,6 @@
 <div align="center">
 
-<img src="extension/icons/icon128.png" alt="" width="96" height="96">
-
-# Decibel Limiter
-
-**Never hear the spike.** A real lookahead limiter for every browser tab: loud ads, jump scares and sudden peaks
-are stopped *before* they reach your ears.
+<img src="img/store/readme-banner-1600x480.png" alt="Decibel Limiter — Never hear the spike. A real lookahead limiter for every browser tab." width="100%">
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/jhdflfacjalpcajleapijmclnbilnjlh?logo=googlechrome&logoColor=white&label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/decibel-limiter/jhdflfacjalpcajleapijmclnbilnjlh)
 [![Users](https://img.shields.io/chrome-web-store/users/jhdflfacjalpcajleapijmclnbilnjlh?label=users)](https://chromewebstore.google.com/detail/decibel-limiter/jhdflfacjalpcajleapijmclnbilnjlh)
@@ -15,8 +10,6 @@ are stopped *before* they reach your ears.
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [Features](#features) · [Install](#install) · [How it works](#how-it-works) · [Privacy](#privacy) · [Contributing](#contributing)
-
-![Decibel Limiter: never hear the spike](img/store/screenshot-1-hero.png)
 
 </div>
 
@@ -44,6 +37,7 @@ Good for headphones, late nights, shared spaces, autoplaying ads, and anyone who
 
 <div align="center">
 
+![The Decibel Limiter popup next to the headline](img/store/screenshot-1-hero.png)
 ![Peaks are cut before you hear them](img/store/screenshot-2-protection.png)
 ![One tap for every moment](img/store/screenshot-3-scenarios.png)
 ![Best quality or fullscreen, your call](img/store/screenshot-4-quality.png)

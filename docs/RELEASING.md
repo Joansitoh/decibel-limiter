@@ -44,7 +44,7 @@ Chromium sources as they are, for debugging a store rejection.
 
 ## Store art
 
-`npm run store-art` regenerates `img/store/*.svg|png` (screenshots 1280×800, promo tiles 440×280 and 1400×560)
-with Playwright. Edit `scripts/store-art.mjs`, never the images. If the popup's look or copy changed, update the art
+`npm run store-art` regenerates `img/store/*.svg|png` (screenshots 1280×800, promo tiles 440×280 and 1400×560,
+and the README banner) with Playwright; `npm run store-art -- <name>` renders only that image. Edit `scripts/store-art.mjs`, never the images. If the popup's look or copy changed, update the art
 so the listings show the real extension. Fonts render slightly differently per OS, so only commit the images whose
 `.svg` actually changed.
